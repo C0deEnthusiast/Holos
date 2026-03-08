@@ -12,7 +12,7 @@ if not API_KEY:
     raise ValueError("GEMINI_API_KEY is not set. Please check your .env file.")
 
 client = genai.Client(api_key=API_KEY)
-MODEL_ID = 'gemini-2.5-flash'
+MODEL_ID = 'models/gemini-flash-latest'
 
 def analyze_item(image_path: str) -> str:
     """Analyzes a single prominent item in an image."""
@@ -50,7 +50,7 @@ def analyze_item(image_path: str) -> str:
                     print(f"Rate limit hit. Retrying in {(attempt + 1) * 15} seconds...")
                     time.sleep((attempt + 1) * 15)
                 else:
-                    print(f"Quota limits exhausted for {MODEL_ID}.")
+                    print(f"Quota reached for {MODEL_ID}: {e}")
                     return "QUOTA_EXHAUSTED"
             else:
                 import traceback
@@ -122,7 +122,7 @@ def analyze_room(image_path: str) -> str:
                     print(f"Rate limit hit. Retrying in {(attempt + 1) * 15} seconds...")
                     time.sleep((attempt + 1) * 15)
                 else:
-                    print(f"Error during room scanning after {max_retries} attempts: Quota Exhausted")
+                    print(f"Error during room scanning after {max_retries} attempts: Quota Exhausted ({e})")
                     return "QUOTA_EXHAUSTED"
             else:
                 import traceback
@@ -135,7 +135,7 @@ def analyze_room(image_path: str) -> str:
                     print(f"Rate limit hit. Retrying in {(attempt + 1) * 15} seconds...")
                     time.sleep((attempt + 1) * 15)
                 else:
-                    print(f"Error during room scanning after {max_retries} attempts: Quota Exhausted")
+                    print(f"Error during room scanning after {max_retries} attempts: Quota Exhausted ({e})")
                     return "QUOTA_EXHAUSTED"
             else:
                 import traceback
