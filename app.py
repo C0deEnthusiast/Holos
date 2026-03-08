@@ -7,6 +7,7 @@ import json
 import scanner  # Import our existing scanning logic
 import re
 import traceback
+import uuid
 
 # Load environment variables
 load_dotenv(override=True)
@@ -198,7 +199,27 @@ def scan_image():
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
+
+            # Handle Supabase Storage
+            public_url = None
             
+            if supabase:
+                try:
+                    # Create unique filename
+                    uniq_filename = f"{uuid.uuid4()}_{filename}"
+
+                    with open(filepath, "rb") as f:
+                        response = (supabase.storage.from_("scans").upload(
+                            path=uniq_filename,
+                            file=f,
+                            file_options={"content-type": file.content_type}
+                            )
+                        )
+                    
+                    # Now get public URL from Supabase Storage
+                    public_url = (supabase.storage.from_("scans").get_public_url(uniq_filename))
+                except Exception as e:
+                    print(f"Error uploading to Supabase Storage: {e}")
             try:
                 # Process each room
                 result_str = scanner.analyze_room(filepath)
@@ -237,6 +258,7 @@ def scan_image():
                             # because the scans table might not have these columns yet.
                             item['home_name'] = home_name
                             item['room_name'] = room_name
+                            item['original_image_url'] = public_url
                         
                         all_results.extend(items)
                     except json.JSONDecodeError:
