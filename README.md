@@ -1,18 +1,34 @@
-# Holos - AI-Powered Home Inventory & Scanning
+# Holos ✦ AI-Powered Home Cataloging
 
-Holos is a web application that uses Gemini Vision AI to analyze images of your home, identify items, estimate their value, and extract detailed metadata (like dimensions and book details).
+**Your Home, Cataloged by AI.**
 
-## Contributors
-- Satya Pushadapu
-- Kevin Tang
-- Joop Stark
-- Rodolfo Martinez
+Holos is a premier, intelligent home inventory application that leverages Google's Gemini Vision AI to instantly identify, organize, and value your personal assets. Built with a sleek glassmorphism UI and a focus on simplicity, Holos turns the arduous task of home inventory management—crucial for insurance, moving, or personal organization—into a seamless experience.
+
+![Holos Application Preview](/static/logo.png)
+
+## Why Holos?
+
+Keeping track of your valuable items is often tedious. Holos solves this by allowing you to simply snap a picture of a room or item. Our AI takes over, automatically extracting:
+- **Item Identification**: Name, Category, Make, and Model.
+- **Automated Valuation**: Real-time estimated market value based on the item's condition.
+- **Smart Parsing**: Context-aware extraction (e.g., Book Titles, Authors, ISBNs, and physical dimension estimations).
+
+*Coming soon to the iOS App Store and Google Play.*
 
 ---
 
-## Setup Instructions for Team Members
+## Technical Highlights
 
-### 1. Prerequisite
+- **Advanced AI Integration**: Powered by Gemini 2.5/1.5 Flash Vision models with custom temperature constraints for deterministic JSON extraction.
+- **Modern Tech Stack**: Flask Backend, Vanilla JavaScript, and beautiful custom CSS.
+- **Cloud Native**: Integrated with Supabase Auth (PostgreSQL) and Storage for secure, cloud-synced user profiles and image tracking.
+- **SEO Optimized**: The web platform features a seamlessly integrated, SEO-optimized landing page designed to capture organic search traffic.
+
+---
+
+## Setup Instructions for Developers
+
+### 1. Prerequisites
 Ensure you have **Python 3.10+** installed on your machine.
 
 ### 2. Clone the Repository
@@ -40,12 +56,14 @@ pip install -r requirements.txt
 ```
 
 ### 5. Configure Environment Variables
-Create a file named `.env` in the root directory and add your Gemini API Key:
+Create a file named `.env` in the root directory and add your credentials:
 ```text
-GEMINI_API_KEY=your_api_key_here
+GEMINI_API_KEY=your_gemini_key
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
 ```
 > [!NOTE]
-> You can get a free API key from [Google AI Studio](https://aistudio.google.com/).
+> You can get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/) and a free Supabase project from [Supabase](https://supabase.com/).
 
 ### 6. Run the Application
 ```bash
@@ -55,9 +73,8 @@ The application will be available at `http://127.0.0.1:5000`.
 
 ---
 
-## Features
-- **Batch Scanning**: Upload multiple images at once.
-- **Hierarchical Categories**: Items are grouped into a tree structure.
-- **Media Information**: Automatic extraction of book titles, authors, and ISBNs.
-- **Dimension Estimation**: AI-based physical dimension estimation for assets.
-- **Premium UI**: Sleek glassmorphism design with responsive components.
+## 👥 Contributors
+- Satya Pushadapu
+- Kevin Tang
+- Joop Stark
+- Rodolfo Martinez
