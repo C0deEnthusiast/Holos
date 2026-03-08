@@ -475,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return `
                     <div class="asset-card" data-id="${item.tempId}">
                         <div class="asset-thumbnail-container">
-                            <img src="${item.thumbnail_url || '/static/logo.png'}" 
+                            <img src="${item.thumbnail_url || '/static/HOLOS.jpg'}" 
                                  class="asset-thumbnail" 
                                  id="thumb-${item.tempId}"
                                  alt="${item.name}">
