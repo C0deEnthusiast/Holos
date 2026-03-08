@@ -1,10 +1,10 @@
-# Holos ✦ AI-Powered Home Cataloging
+# Holos - AI-Powered Home Cataloging
 
 **Your Home, Cataloged by AI.**
 
 Holos is a premier, intelligent home inventory application that leverages Google's Gemini Vision AI to instantly identify, organize, and value your personal assets. Built with a sleek glassmorphism UI and a focus on simplicity, Holos turns the arduous task of home inventory management—crucial for insurance, moving, or personal organization—into a seamless experience.
 
-![Holos Application Preview](/static/logo.png)
+![Holos Application Preview](/static/HOLOS.jpg)
 
 ## Why Holos?
 
@@ -12,8 +12,6 @@ Keeping track of your valuable items is often tedious. Holos solves this by allo
 - **Item Identification**: Name, Category, Make, and Model.
 - **Automated Valuation**: Real-time estimated market value based on the item's condition.
 - **Smart Parsing**: Context-aware extraction (e.g., Book Titles, Authors, ISBNs, and physical dimension estimations).
-
-*Coming soon to the iOS App Store and Google Play.*
 
 ---
 
@@ -23,6 +21,17 @@ Keeping track of your valuable items is often tedious. Holos solves this by allo
 - **Modern Tech Stack**: Flask Backend, Vanilla JavaScript, and beautiful custom CSS.
 - **Cloud Native**: Integrated with Supabase Auth (PostgreSQL) and Storage for secure, cloud-synced user profiles and image tracking.
 - **SEO Optimized**: The web platform features a seamlessly integrated, SEO-optimized landing page designed to capture organic search traffic.
+
+---
+
+## Tech Stack
+
+### HTML/CSS
+### JavaScript
+### Python
+### Supabase and Supabase Storage (PostgreSQL)
+### Gemini AI API
+### Google Antigravity
 
 ---
 
@@ -62,8 +71,6 @@ GEMINI_API_KEY=your_gemini_key
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_KEY=your_supabase_anon_key
 ```
-> [!NOTE]
-> You can get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/) and a free Supabase project from [Supabase](https://supabase.com/).
 
 ### 6. Run the Application
 ```bash
@@ -73,8 +80,7 @@ The application will be available at `http://127.0.0.1:5000`.
 
 ---
 
-## 👥 Contributors
+## Contributors
 - Satya Pushadapu
 - Kevin Tang
-- Joop Stark
-- Rodolfo Martinez
+- Rodolfo Martinez-Maldonado
