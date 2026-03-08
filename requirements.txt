@@ -1,6 +1,7 @@
 flask
 werkzeug
-google-generativeai
+google-genai
 python-dotenv
 pillow
 requests
+supabase
