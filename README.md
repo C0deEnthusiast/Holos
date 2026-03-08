@@ -24,12 +24,21 @@ Keeping track of your valuable items is often tedious. Holos solves this by allo
 
 ## Tech Stack
 
-- HTML/CSS
+### Frontend
+- HTML
+- CSS
+### Backend
 - JavaScript
 - Python
-- Supabase and Supabase Storage (PostgreSQL)
-- Gemini AI API
-- Google Antigravity (IDE)
+- Flask
+### Database & Authentication
+- Supabase (PostgreSQL)
+- Supabase Storage
+- Supabase Auth
+### Artificial Intelligence
+- Google Gemini API
+### Development Tools
+- Google Antigravity
 
 ---
 
