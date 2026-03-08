@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holos | AI Room Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Load Remix Icons for sleek SVG icons -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+</head>
+
+<body>
+
+    <div class="background-mesh"></div>
+
+    <main class="container">
+
+        <header class="header">
+            <div class="logo-container">
+                <!-- Fallback to text if the image isn't named strictly 'logo.jpg', but we will assume it is -->
+                <img src="/static/logo.jpg" alt="Holos Logo" class="logo"
+                    onerror="this.style.display='none'; document.getElementById('text-logo').style.display='block';">
+                <h1 id="text-logo" style="display:none;" class="logo-text">HOLOS</h1>
+            </div>
+            <p class="subtitle">Intelligent Home Cataloging</p>
+        </header>
+
+        <section class="upload-section">
+            <div id="drop-zone" class="drop-zone">
+                <input type="file" id="file-input" accept="image/*" class="file-input" multiple hidden>
+                <div class="drop-content">
+                    <i class="ri-camera-lens-line drop-icon"></i>
+                    <h3>Tap to scan single or multiple pictures</h3>
+                    <p>or drag and drop images here</p>
+                </div>
+                <div id="file-count-badge" class="file-count-badge hidden">
+                    <span id="file-count-text">0 files selected</span>
+                    <button id="start-scan-btn" class="start-scan-btn">Scan Now</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="scanning-state" class="scanning-state hidden">
+            <div class="scanner-animation">
+                <div class="scan-line"></div>
+                <img id="preview-image" src="" alt="Scanning Preview" class="preview-image">
+            </div>
+            <p class="processing-text">Holos AI is analyzing your space...</p>
+        </section>
+
+        <!-- Dynamic Results Container -->
+        <section id="results-section" class="results-section hidden">
+            <div class="results-header">
+                <h2>Identified Assets</h2>
+                <button id="reset-btn" class="reset-btn"><i class="ri-refresh-line"></i> Scan Another</button>
+            </div>
+
+            <div id="cards-container" class="cards-container">
+                <!-- Cards injected via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
