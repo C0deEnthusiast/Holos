@@ -1,8 +1,7 @@
 # Holos
 ## Contributers
-Satya Pushadapu
-Kevin Tang
-Joop Stark
-Rodolfo Martinez
+Satya Pushadapu<br>
+Kevin Tang<br>
+Rodolfo Martinez<br>
 
-Holos is a website that allows the pr
+Holos is a website that where users can upload pictures which uses computer vision in order to analyze the
