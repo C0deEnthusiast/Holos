@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 import json
 import scanner  # Import our existing scanning logic
+import re
+import traceback
 
 # Load environment variables
 load_dotenv(override=True)
@@ -204,6 +206,10 @@ def scan_image():
                 
                 if result_str == "QUOTA_EXHAUSTED":
                     errors.append(f"Google AI Studio Quota Exceeded. Please upgrade your API key or wait for the free limit to reset.")
+                elif result_str == "API_UNAVAILABLE":
+                    errors.append(f"The AI model is currently experiencing high demand and is unavailable. Please try again later.")
+                elif result_str and result_str.startswith("SCAN_ERROR:"):
+                    errors.append(result_str.replace("SCAN_ERROR:", "").strip())
                 elif result_str:
                     # The scanner.py returns a JSON array string containing multiple items per image.
                     # We parse it here into a Python list so we can combine lists across all images.
@@ -296,7 +302,6 @@ def save_item():
         price_str = str(data.get("estimated_price_usd") or "0").replace("$","").replace(",","")
         try:
             # Look for the first number in the string if it contains "About $50" or similar
-            import re
             numbers = re.findall(r"[-+]?\d*\.\d+|\d+", price_str)
             price = float(numbers[0]) if numbers else 0.0
         except:
@@ -355,7 +360,6 @@ def save_item():
             
         return jsonify({'success': True, 'data': res.data[0]})
     except Exception as e:
-        import traceback
         error_msg = str(e)
         print(f"ERROR IN SAVE_ITEM: {error_msg}")
         traceback.print_exc()
@@ -431,7 +435,6 @@ def get_user_items():
             
         return jsonify({'success': True, 'data': final_data})
     except Exception as e:
-        import traceback
         print("ERROR IN GET_USER_ITEMS:")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 400
