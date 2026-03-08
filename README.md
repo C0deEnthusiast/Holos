@@ -1,7 +1,5 @@
 # Holos - AI-Powered Home Cataloging
 
-**Your Home, Cataloged by AI.**
-
 Holos is a premier, intelligent home inventory application that leverages Google's Gemini Vision AI to instantly identify, organize, and value your personal assets. Built with a sleek glassmorphism UI and a focus on simplicity, Holos turns the arduous task of home inventory management—crucial for insurance, moving, or personal organization—into a seamless experience.
 
 ![Holos Application Preview](/static/HOLOS.jpg)
@@ -26,12 +24,12 @@ Keeping track of your valuable items is often tedious. Holos solves this by allo
 
 ## Tech Stack
 
-### HTML/CSS
-### JavaScript
-### Python
-### Supabase and Supabase Storage (PostgreSQL)
-### Gemini AI API
-### Google Antigravity
+- HTML/CSS
+- JavaScript
+- Python
+- Supabase and Supabase Storage (PostgreSQL)
+- Gemini AI API
+- Google Antigravity (IDE)
 
 ---
 
