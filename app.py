@@ -82,16 +82,21 @@ def login():
         "tester1@holos.com": "holos2026",
         "tester2@holos.com": "holos2026",
         "guest@holos.com": "holos2026",
-        "demo@holos.com": "holos2026"
+        "demo@holos.com": "holos2026",
+        "manager@holos.com": "holos2026",
+        "user1@holos.com": "holos2026",
+        "user2@holos.com": "holos2026"
     }
 
     if email in test_accounts and password == test_accounts[email]:
+        # Generate a unique mock token for each team account
+        mock_token = f"mock_token_{email.split('@')[0]}"
         return jsonify({
             'success': True,
-            'session': {'access_token': 'mock_token_for_prototype'},
+            'session': {'access_token': mock_token},
             'user': {
                 'email': email, 
-                'user_metadata': {'full_name': email.split('@')[0].capitalize() + " (Test Account)"}
+                'user_metadata': {'full_name': email.split('@')[0].capitalize() + " (Team Account)"}
             }
         })
     # --------------------------------------------------
@@ -144,8 +149,24 @@ def get_current_user_id():
     # 1. Try to get ID from Bearer Token
     if auth_header and auth_header.startswith('Bearer '):
         token = auth_header.split(' ')[1]
-        if token in ['mock_token_for_prototype', 'mock_token', 'null', '', None]:
-            user_id = "00000000-0000-0000-0000-000000000000"
+        
+        # TEAM MOCK ACCOUNTS: Map specific mock tokens to unique UUIDs
+        mock_map = {
+            "mock_token_admin":  "11111111-1111-1111-1111-111111111111",
+            "mock_token_tester1":"22222222-2222-2222-2222-222222222222",
+            "mock_token_tester2":"33333333-3333-3333-3333-333333333333",
+            "mock_token_guest":  "44444444-4444-4444-4444-444444444444",
+            "mock_token_demo":   "00000000-0000-0000-0000-000000000000",
+            "mock_token_manager":"55555555-5555-5555-5555-555555555555",
+            "mock_token_user1":  "66666666-6666-6666-6666-666666666666",
+            "mock_token_user2":  "77777777-7777-7777-7777-777777777777",
+            "mock_token_for_prototype": "00000000-0000-0000-0000-000000000000"
+        }
+        
+        if token in mock_map:
+            user_id = mock_map[token]
+        elif token == 'mock_token' or token == 'null' or not token:
+             user_id = "00000000-0000-0000-0000-000000000000"
         elif supabase:
             try:
                 user_res = supabase.auth.get_user(token)
@@ -221,9 +242,7 @@ def scan_image():
                 except Exception as e:
                     print(f"Error uploading to Supabase Storage: {e}")
             try:
-                # Process each room
                 result_str = scanner.analyze_room(filepath)
-                os.remove(filepath)
                 
                 if result_str == "QUOTA_EXHAUSTED":
                     errors.append(f"Google AI Studio Quota Exceeded. Please upgrade your API key or wait for the free limit to reset.")
@@ -246,7 +265,26 @@ def scan_image():
                     
                     try:
                         items = json.loads(cleaned)
+
+                        # --- SUPABASE STORAGE UPLOAD ---
+                        # Use a unique path to avoid collisions
+                        import uuid
+                        unique_id = str(uuid.uuid4())[:8]
+                        storage_path = f"room_{unique_id}_{filename}"
                         
+                        try:
+                            with open(filepath, "rb") as f:
+                                # Upload to 'scans' bucket
+                                supabase.storage.from_("scans").upload(storage_path, f)
+                            
+                            # Build the public URL
+                            # Note: Bucket must be public in Supabase settings
+                            image_url = supabase.storage.from_("scans").get_public_url(storage_path)
+                            print(f"DEBUG: Uploaded scan to {image_url}")
+                        except Exception as storage_err:
+                            print(f"WARNING: Supabase storage upload failed: {storage_err}")
+                            image_url = None
+
                         # Ensure items is always a list
                         if not isinstance(items, list):
                             items = [items]
@@ -254,6 +292,7 @@ def scan_image():
                         # Add filename and location to help frontend mapping
                         for item in items:
                             item['original_filename'] = original_filename
+                            item['original_image_url'] = image_url
                             # We store location directly in the item metadata 
                             # because the scans table might not have these columns yet.
                             item['home_name'] = home_name
@@ -266,6 +305,8 @@ def scan_image():
                 else:
                     errors.append(f"No response from model for {filename}")
                 
+                if os.path.exists(filepath):
+                     os.remove(filepath)
             except Exception as e:
                 if os.path.exists(filepath):
                      os.remove(filepath)
@@ -353,6 +394,7 @@ def save_item():
         scan_payload = {
             "user_id": user_id,
             "status": "item_link",
+            "original_image_url": data.get("original_image_url"), # FIX: Save the actual image link!
             "home_name": data.get("home_name", "My House"),
             "room_name": data.get("room_name", "General Room")
         }
@@ -431,6 +473,7 @@ def get_user_items():
             # 3. Resolve Location (prefer new columns, fallback to JSON in note)
             item["home_name"] = scan_info.get("home_name")
             item["room_name"] = scan_info.get("room_name")
+            item["original_image_url"] = scan_info.get("original_image_url") # Link back to the original photo
 
             if not item["home_name"] or not item["room_name"]:
                 if note and note.startswith("{"):
