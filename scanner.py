@@ -3,6 +3,8 @@ import json
 from google import genai
 from dotenv import load_dotenv
 from PIL import Image
+import traceback
+import time
 
 # Load environment variables
 load_dotenv()
@@ -34,7 +36,6 @@ def analyze_item(image_path: str) -> str:
     }
     """
     
-    import time
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -45,23 +46,21 @@ def analyze_item(image_path: str) -> str:
                 )
                 return response.text
         except genai.errors.ClientError as e:
-            if getattr(e, 'code', None) == 429 or '429' in str(e):
+            if getattr(e, 'code', None) in (429, 503) or any(code in str(e) for code in ['429', '503']):
                 if attempt < max_retries - 1:
-                    print(f"Rate limit hit. Retrying in {(attempt + 1) * 15} seconds...")
+                    print(f"Rate limit or high demand hit. Retrying in {(attempt + 1) * 15} seconds...")
                     time.sleep((attempt + 1) * 15)
                 else:
-                    print(f"Quota reached for {MODEL_ID}: {e}")
-                    return "QUOTA_EXHAUSTED"
+                    print(f"Quota or retries exhausted for {MODEL_ID}: {e}")
+                    return "API_UNAVAILABLE" if getattr(e, 'code', None) == 503 or '503' in str(e) else "QUOTA_EXHAUSTED"
             else:
-                import traceback
                 print(f"Error during analysis: {e}")
                 traceback.print_exc()
-                return None
+                return f"SCAN_ERROR: {str(e)}"
         except Exception as e:
-            import traceback
             print(f"Error during analysis: {e}")
             traceback.print_exc()
-            return None
+            return f"SCAN_ERROR: {str(e)}"
 
 def analyze_room(image_path: str) -> str:
     """Analyzes a wide room image to identify multiple featured items."""
@@ -111,7 +110,6 @@ def analyze_room(image_path: str) -> str:
     ]
     """
     
-    import time
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -122,31 +120,29 @@ def analyze_room(image_path: str) -> str:
                 )
                 return response.text
         except genai.errors.ClientError as e:
-            if getattr(e, 'code', None) == 429 or '429' in str(e):
+            if getattr(e, 'code', None) in (429, 503) or any(code in str(e) for code in ['429', '503']):
                 if attempt < max_retries - 1:
-                    print(f"Rate limit hit. Retrying in {(attempt + 1) * 15} seconds...")
+                    print(f"Rate limit or high demand hit. Retrying in {(attempt + 1) * 15} seconds...")
                     time.sleep((attempt + 1) * 15)
                 else:
-                    print(f"Error during room scanning after {max_retries} attempts: Quota Exhausted ({e})")
-                    return "QUOTA_EXHAUSTED"
+                    print(f"Error during room scanning after {max_retries} attempts: Retries Exhausted ({e})")
+                    return "API_UNAVAILABLE" if getattr(e, 'code', None) == 503 or '503' in str(e) else "QUOTA_EXHAUSTED"
             else:
-                import traceback
                 print(f"Error during room scanning: {e}")
                 traceback.print_exc()
-                return None
+                return f"SCAN_ERROR: {str(e)}"
         except Exception as e:
-            if "429" in str(e) or "Resource has been exhausted" in str(e) or "quota" in str(e).lower():
+            if any(key in str(e).lower() for key in ["429", "503", "resource has been exhausted", "quota", "unavailable"]):
                 if attempt < max_retries - 1:
-                    print(f"Rate limit hit. Retrying in {(attempt + 1) * 15} seconds...")
+                    print(f"Rate limit or high demand hit. Retrying in {(attempt + 1) * 15} seconds...")
                     time.sleep((attempt + 1) * 15)
                 else:
-                    print(f"Error during room scanning after {max_retries} attempts: Quota Exhausted ({e})")
-                    return "QUOTA_EXHAUSTED"
+                    print(f"Error during room scanning after {max_retries} attempts: Retries Exhausted ({e})")
+                    return "API_UNAVAILABLE" if "503" in str(e).lower() or "unavailable" in str(e).lower() else "QUOTA_EXHAUSTED"
             else:
-                import traceback
                 print(f"Error during room scanning: {e}")
                 traceback.print_exc()
-                return None
+                return f"SCAN_ERROR: {str(e)}"
 
 if __name__ == "__main__":
     print("--- Holos Prototype Initialized ---")
