@@ -13,12 +13,15 @@ app = Flask(__name__)
 # Initialize Supabase client
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_KEY")
+supabase_secret = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") # Secret key for bypassing RLS in backend
 
-if supabase_url and supabase_key:
-    supabase: Client = create_client(supabase_url, supabase_key)
+if supabase_url and (supabase_secret or supabase_key):
+    # Use Secret Key if available for backend operations, fallback to anon key
+    active_key = supabase_secret if supabase_secret else supabase_key
+    supabase: Client = create_client(supabase_url, active_key)
 else:
     supabase = None
-    print("WARNING: SUPABASE_URL or SUPABASE_KEY not found in environment.")
+    print("WARNING: SUPABASE_URL or keys not found in environment.")
 
 # Configure upload folder
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
@@ -69,15 +72,29 @@ def login():
     if not email or not password:
         return jsonify({'error': 'Email and password required'}), 400
 
+    # --- HARDCODED TEST ACCOUNTS FOR TEAM PROTOTYPE ---
+    test_accounts = {
+        "admin@holos.com": "holos2026",
+        "tester1@holos.com": "holos2026",
+        "tester2@holos.com": "holos2026",
+        "guest@holos.com": "holos2026",
+        "demo@holos.com": "holos2026"
+    }
+
+    if email in test_accounts and password == test_accounts[email]:
+        return jsonify({
+            'success': True,
+            'session': {'access_token': 'mock_token_for_prototype'},
+            'user': {
+                'email': email, 
+                'user_metadata': {'full_name': email.split('@')[0].capitalize() + " (Test Account)"}
+            }
+        })
+    # --------------------------------------------------
+
     if not supabase:
-        # Mock login logic when Supabase isn't hooked up
-        if email == 'test@holos.com' and password == 'password':
-            return jsonify({
-                'success': True,
-                'session': {'access_token': 'mock_token'},
-                'user': {'email': email, 'user_metadata': {'full_name': 'Test Cataloger'}}
-            })
-        elif password == 'password':
+        # Fallback for local testing
+        if password == 'password':
              return jsonify({
                 'success': True,
                 'session': {'access_token': 'mock_token'},
@@ -87,9 +104,17 @@ def login():
 
     try:
         res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-        return jsonify({'success': True, 'session': res.session.model_dump() if res.session else None, 'user': res.user.model_dump() if res.user else None})
+        return jsonify({
+            'success': True, 
+            'session': res.session.model_dump() if res.session else None, 
+            'user': res.user.model_dump() if res.user else None
+        })
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        error_msg = str(e)
+        if "Email not confirmed" in error_msg:
+            error_msg = "Your email address has not been confirmed yet. Please check your inbox or use one of the Holos Test Accounts (e.g., admin@holos.com / holos2026)."
+        print(f"Login Error: {e}")
+        return jsonify({'error': error_msg}), 400
 
 @app.route('/api/auth/logout', methods=['POST'])
 def logout():
@@ -107,6 +132,26 @@ def logout():
         return jsonify({'error': str(e)}), 400
 # --- End Auth Endpoints ---
 
+def get_current_user_id():
+    """Helper to extract user_id from Supabase token or form data."""
+    # 1. Check Authorization header
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+        if token == 'mock_token_for_prototype' or token == 'mock_token':
+             return "00000000-0000-0000-0000-000000000000"
+             
+        if supabase:
+            try:
+                user_res = supabase.auth.get_user(token)
+                if user_res.user:
+                    return user_res.user.id
+            except:
+                pass
+    
+    # 2. Fallback to form field
+    return request.form.get("user_id")
+
 @app.route('/api/scan', methods=['POST'])
 def scan_image():
     if 'image' not in request.files:
@@ -119,6 +164,7 @@ def scan_image():
         
     all_results = []
     errors = []
+    user_id = get_current_user_id()
 
     for file in files:
         if file and allowed_file(file.filename):
@@ -149,19 +195,14 @@ def scan_image():
                             items = [items]
                             
                         # === SUPABASE INTEGRATION ===
-                        # NOTE FOR TEAMMATE: When login/signup is implemented, you'll need to pass the
-                        # actual authenticated `user_id` here from the frontend or JWT session.
-                        # For now, we attempt to read it from the form data. If it doesn't exist, we skip DB insertion.
-                        mock_user_id = request.form.get("user_id") 
-                        
-                        if supabase and mock_user_id:
+                        if supabase and user_id:
                             try:
                                 # 1. Insert a new Scan record
-                                # NOTE FOR TEAMMATE: Update 'original_image_url' once you set up Supabase Storage uploads
                                 scan_response = supabase.table("scans").insert({
-                                    "user_id": mock_user_id,
+                                    "user_id": user_id if user_id else "00000000-0000-0000-0000-000000000000",
                                     "original_image_url": "mock_url_pending_storage_integration"
                                 }).execute()
+                                
                                 
                                 scan_id = scan_response.data[0]['id']
                                 
@@ -178,7 +219,7 @@ def scan_image():
 
                                     supabase.table("items").insert({
                                         "scan_id": scan_id,
-                                        "user_id": mock_user_id,
+                                        "user_id": user_id if user_id else "00000000-0000-0000-0000-000000000000",
                                         "name": item.get("name"),
                                         "category": item.get("category"),
                                         "make": item.get("make"),
@@ -205,7 +246,8 @@ def scan_image():
             errors.append(f"Invalid file type for {file.filename if file else 'unknown'}")
 
     if not all_results and errors:
-        return jsonify({'error': 'Failed to process any images.', 'details': errors}), 500
+        main_error = errors[0] if any(keyword in errors[0] for keyword in ["Quota", "Model", "ClientError", "NOT_FOUND"]) else 'Failed to process any images.'
+        return jsonify({'error': main_error, 'details': errors}), 500
         
     return jsonify({
         'success': True, 
