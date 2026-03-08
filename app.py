@@ -1,9 +1,24 @@
 import os
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+from supabase import create_client, Client
 import scanner  # Import our existing scanning logic
 
+# Load environment variables
+load_dotenv()
+
 app = Flask(__name__)
+
+# Initialize Supabase client
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_KEY")
+
+if supabase_url and supabase_key:
+    supabase: Client = create_client(supabase_url, supabase_key)
+else:
+    supabase = None
+    print("WARNING: SUPABASE_URL or SUPABASE_KEY not found in environment.")
 
 # Configure upload folder
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__line__ if '__line__' in locals() else __file__)), 'uploads')
@@ -54,10 +69,55 @@ def scan_image():
                     
                     try:
                         items = json.loads(cleaned)
-                        if isinstance(items, list):
-                            all_results.extend(items)
-                        else:
-                            all_results.append(items)
+                        
+                        # Ensure items is always a list
+                        if not isinstance(items, list):
+                            items = [items]
+                            
+                        # === SUPABASE INTEGRATION ===
+                        # NOTE FOR TEAMMATE: When login/signup is implemented, you'll need to pass the
+                        # actual authenticated `user_id` here from the frontend or JWT session.
+                        # For now, we attempt to read it from the form data. If it doesn't exist, we skip DB insertion.
+                        mock_user_id = request.form.get("user_id") 
+                        
+                        if supabase and mock_user_id:
+                            try:
+                                # 1. Insert a new Scan record
+                                # NOTE FOR TEAMMATE: Update 'original_image_url' once you set up Supabase Storage uploads
+                                scan_response = supabase.table("scans").insert({
+                                    "user_id": mock_user_id,
+                                    "original_image_url": "mock_url_pending_storage_integration"
+                                }).execute()
+                                
+                                scan_id = scan_response.data[0]['id']
+                                
+                                # 2. Insert all recognized Items for this Scan
+                                for item in items:
+                                    
+                                    # Clean up price string to numeric
+                                    raw_price = item.get("estimated_price_usd", "0")
+                                    if isinstance(raw_price, str):
+                                        clean_price = raw_price.replace("$", "").replace(",", "").strip()
+                                        clean_price = float(clean_price) if clean_price.replace(".", "", 1).isdigit() else None
+                                    else:
+                                        clean_price = float(raw_price) if raw_price else None
+
+                                    supabase.table("items").insert({
+                                        "scan_id": scan_id,
+                                        "user_id": mock_user_id,
+                                        "name": item.get("name"),
+                                        "category": item.get("category"),
+                                        "make": item.get("make"),
+                                        "model": item.get("model"),
+                                        "estimated_price_usd": clean_price,
+                                        "estimated_dimensions": item.get("estimated_dimensions")
+                                    }).execute()
+                                    
+                            except Exception as db_err:
+                                print(f"Supabase error: {db_err}")
+                                errors.append(f"Supabase error: {db_err}")
+                        
+                        all_results.extend(items)
                     except json.JSONDecodeError:
                         errors.append(f"Failed to parse model output for {filename}")
                 else:
