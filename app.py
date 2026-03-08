@@ -35,6 +35,78 @@ def allowed_file(filename):
 def index():
     return render_template('index.html')
 
+# --- Supabase Auth Endpoints (REST API Wrapper) ---
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    full_name = data.get('full_name', '')
+
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+
+    if not supabase:
+        # Mock successful registration if Supabase isn't setup
+        return jsonify({'success': True})
+
+    try:
+        res = supabase.auth.sign_up({
+            "email": email,
+            "password": password,
+            "options": {"data": {"full_name": full_name}}
+        })
+        return jsonify({'success': True, 'user': res.user.model_dump() if res.user else None})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+
+    if not supabase:
+        # Mock login logic when Supabase isn't hooked up
+        if email == 'test@holos.com' and password == 'password':
+            return jsonify({
+                'success': True,
+                'session': {'access_token': 'mock_token'},
+                'user': {'email': email, 'user_metadata': {'full_name': 'Test Cataloger'}}
+            })
+        elif password == 'password':
+             return jsonify({
+                'success': True,
+                'session': {'access_token': 'mock_token'},
+                'user': {'email': email, 'user_metadata': {'full_name': email.split('@')[0]}}
+            })
+        return jsonify({'error': 'Supabase not configured. Use password "password" for local testing.'}), 500
+
+    try:
+        res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        return jsonify({'success': True, 'session': res.session.model_dump() if res.session else None, 'user': res.user.model_dump() if res.user else None})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    if not supabase:
+        # Mock logout success
+        return jsonify({'success': True})
+    try:
+        # Get token from header
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+            supabase.auth.global_sign_out(token) # Sign out
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+# --- End Auth Endpoints ---
+
 @app.route('/api/scan', methods=['POST'])
 def scan_image():
     if 'image' not in request.files:
