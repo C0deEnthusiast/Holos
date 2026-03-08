@@ -7,8 +7,13 @@ files = [
     ('image', ('test_room.jpg', open('test_room.jpg', 'rb'), 'image/jpeg'))
 ]
 
+data = {
+    'home_name': 'Test Mansion',
+    'room_name': 'Test Gallery'
+}
+
 print("Sending multiple files to Holos backend...")
-response = requests.post(url, files=files)
+response = requests.post(url, files=files, data=data)
 
 print(f"Status Code: {response.status_code}")
 try:

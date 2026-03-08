@@ -1,6 +1,6 @@
 -- Create profiles table
 CREATE TABLE profiles (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  id UUID PRIMARY KEY,
   display_name TEXT,
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -8,30 +8,33 @@ CREATE TABLE profiles (
 
 -- Create scans table
 CREATE TABLE scans (
- id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
- user_id UUID REFERENCES profiles(id) NOT NULL,
- original_image_url TEXT,
- status TEXT DEFAULT 'completed',
- created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) NOT NULL,
+  original_image_url TEXT,
+  home_name TEXT DEFAULT 'My House',
+  room_name TEXT DEFAULT 'Living Room',
+  status TEXT DEFAULT 'completed',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Create items table
 CREATE TABLE items (
- id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
- scan_id UUID REFERENCES scans(id) ON DELETE CASCADE NOT NULL,
- user_id UUID REFERENCES profiles(id) NOT NULL,
- name TEXT,
- category TEXT,
- make TEXT,
- model TEXT,
- estimated_price_usd NUMERIC,
- estimated_dimensions TEXT,
- condition TEXT,
- bounding_box JSONB,
- maintenance_note TEXT,
- suggested_replacements TEXT,
- thumbnail_url TEXT,
- created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  scan_id UUID REFERENCES scans(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) NOT NULL,
+  name TEXT,
+  category TEXT,
+  make TEXT,
+  model TEXT,
+  estimated_price_usd NUMERIC,
+  estimated_dimensions TEXT,
+  condition TEXT,
+  bounding_box JSONB,
+  maintenance_note TEXT,
+  suggested_replacements TEXT,
+  thumbnail_url TEXT,
+  is_archived BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Enable RLS (Row Level Security)

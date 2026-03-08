@@ -138,9 +138,14 @@
                 </div>
             </div>
 
-            <button id="reset-btn" class="reset-btn hidden">
-                <i class="ri-restart-line"></i> New Scan
-            </button>
+            <div class="header-actions">
+                <button id="my-inventory-btn" class="reset-btn hidden">
+                    <i class="ri-archive-line"></i> My Full Inventory
+                </button>
+                <button id="reset-btn" class="reset-btn hidden">
+                    <i class="ri-restart-line"></i> New Scan
+                </button>
+            </div>
         </header>
 
         <section class="upload-section">
@@ -154,6 +159,8 @@
                 <div id="file-count-badge" class="file-count-badge hidden">
                     <span id="file-count-text">0 files selected</span>
                     <button id="start-scan-btn" class="start-scan-btn">Scan Now</button>
+                    <p class="save-location-status">Saving to: <span id="save-location-info">My House / Living
+                            Room</span></p>
                 </div>
             </div>
         </section>
@@ -174,6 +181,18 @@
                     <i class="ri-search-line search-icon"></i>
                     <input type="text" id="asset-search" placeholder="Search items or categories...">
                 </div>
+            </div>
+
+            <div class="results-tabs" id="results-tabs">
+                <button class="tab-btn hidden" id="recent-scan-tab">
+                    <i class="ri-focus-3-line"></i> Recent Scan
+                </button>
+                <button class="tab-btn active" id="active-items-tab">
+                    <i class="ri-list-check"></i> Standard Inventory
+                </button>
+                <button class="tab-btn" id="archived-items-tab">
+                    <i class="ri-archive-drawer-line"></i> Archive Folder
+                </button>
             </div>
 
             <div id="cards-container" class="cards-container">
