@@ -1,4 +1,186 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Auth Logic (PoC Wrapper) ---
+    const authOverlay = document.getElementById('auth-overlay');
+    const authForm = document.getElementById('auth-form');
+    const authToggleLink = document.getElementById('auth-toggle-link');
+    const authTitle = document.getElementById('auth-title');
+    const authSubtitle = document.getElementById('auth-subtitle');
+    const authSubmitBtn = document.getElementById('auth-submit-btn');
+    const authToggleText = document.getElementById('auth-toggle-text');
+    const userProfileContainer = document.getElementById('user-profile-container');
+
+    const navLoginBtn = document.getElementById('nav-login-btn');
+    const heroBtn = document.getElementById('hero-get-started-btn');
+    const authBoxWrapper = document.getElementById('auth-box-wrapper');
+    const closeAuthBtn = document.getElementById('close-auth-btn');
+
+    let isSignupMode = false;
+
+    // Check login state
+    const currentSession = localStorage.getItem('holos_session');
+    const currentUser = localStorage.getItem('holos_user');
+    if (currentUser && currentSession) {
+        authOverlay.classList.add('hidden');
+        setupUserProfile(JSON.parse(currentUser));
+    }
+
+    if (navLoginBtn) navLoginBtn.addEventListener('click', () => authBoxWrapper.classList.remove('hidden'));
+    if (heroBtn) heroBtn.addEventListener('click', () => {
+        isSignupMode = true; // By default get started is signup
+        authTitle.textContent = 'Create Account';
+        authSubtitle.textContent = 'Join Holos to start cataloging';
+        authSubmitBtn.textContent = 'Sign Up';
+        authToggleText.textContent = 'Already have an account?';
+        authToggleLink.textContent = 'Sign In';
+        authBoxWrapper.classList.remove('hidden');
+    });
+    if (closeAuthBtn) closeAuthBtn.addEventListener('click', () => authBoxWrapper.classList.add('hidden'));
+
+    if (authToggleLink) {
+        authToggleLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            isSignupMode = !isSignupMode;
+
+            if (isSignupMode) {
+                authTitle.textContent = 'Create Account';
+                authSubtitle.textContent = 'Join Holos to start cataloging';
+                authSubmitBtn.textContent = 'Sign Up';
+                authToggleText.textContent = 'Already have an account?';
+                authToggleLink.textContent = 'Sign In';
+            } else {
+                authTitle.textContent = 'Welcome Back';
+                authSubtitle.textContent = 'Sign in to continue to Holos';
+                authSubmitBtn.textContent = 'Sign In';
+                authToggleText.textContent = "Don't have an account?";
+                authToggleLink.textContent = 'Sign Up';
+            }
+        });
+    }
+
+    if (authForm) {
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) return;
+
+            const endpoint = isSignupMode ? '/api/auth/register' : '/api/auth/login';
+            const payload = { email, password, full_name: email.split('@')[0] };
+
+            authSubmitBtn.disabled = true;
+            authSubmitBtn.textContent = 'Please wait...';
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    if (data.session) {
+                        localStorage.setItem('holos_session', JSON.stringify(data.session));
+                    }
+                    if (data.user) {
+                        const userObj = { email: data.user.email, name: data.user.user_metadata?.full_name || email.split('@')[0] };
+                        localStorage.setItem('holos_user', JSON.stringify(userObj));
+
+                        authOverlay.style.opacity = '0';
+                        setTimeout(() => {
+                            authOverlay.classList.add('hidden');
+                            setupUserProfile(userObj);
+                        }, 400);
+                    } else if (isSignupMode) {
+                        alert("Account created! Please verify your email or try logging in.");
+                    }
+                } else {
+                    alert('Error: ' + (data.error || 'Authentication failed. Please check backend config.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Failed to communicate with backend. Is it running?');
+            } finally {
+                authSubmitBtn.disabled = false;
+                authSubmitBtn.textContent = isSignupMode ? 'Sign Up' : 'Sign In';
+            }
+        });
+    }
+
+    function setupUserProfile(user) {
+        if (userProfileContainer && !userProfileContainer.innerHTML.trim()) {
+            userProfileContainer.innerHTML = `
+                <div class="user-profile">
+                    <div class="user-avatar">${user.name.charAt(0).toUpperCase()}</div>
+                    <span class="user-name">${user.name}</span>
+                    <button class="logout-btn prominent-logout-btn" id="logout-btn" title="Sign Out">Sign Out <i class="ri-logout-box-r-line"></i></button>
+                </div>
+            `;
+
+            // Show location selector when logged in
+            const locationSelector = document.getElementById('location-selector');
+            if (locationSelector) locationSelector.classList.remove('hidden');
+
+            document.getElementById('logout-btn').addEventListener('click', async () => {
+                const sessionStr = localStorage.getItem('holos_session');
+                if (sessionStr) {
+                    try {
+                        const sess = JSON.parse(sessionStr);
+                        await fetch('/api/auth/logout', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${sess.access_token}` }
+                        });
+                    } catch (e) { console.error(e); }
+                }
+
+                localStorage.removeItem('holos_user');
+                localStorage.removeItem('holos_session');
+                userProfileContainer.innerHTML = '';
+
+                if (locationSelector) locationSelector.classList.add('hidden');
+
+                authOverlay.classList.remove('hidden');
+                setTimeout(() => authOverlay.style.opacity = '1', 10);
+                document.getElementById('password').value = '';
+            });
+        }
+    }
+    // --- End Auth Logic ---
+
+    // --- Location Nav Logic ---
+    const addHomeBtn = document.getElementById('add-home-btn');
+    const homeSelect = document.getElementById('home-select');
+    const addRoomBtn = document.getElementById('add-room-btn');
+    const roomSelect = document.getElementById('room-select');
+
+    if (addHomeBtn && homeSelect) {
+        addHomeBtn.addEventListener('click', () => {
+            const newHome = prompt("Enter new Home name:");
+            if (newHome && newHome.trim()) {
+                const opt = document.createElement('option');
+                opt.value = newHome.trim();
+                opt.textContent = newHome.trim();
+                homeSelect.appendChild(opt);
+                homeSelect.value = newHome.trim();
+            }
+        });
+    }
+
+    if (addRoomBtn && roomSelect) {
+        addRoomBtn.addEventListener('click', () => {
+            const newRoom = prompt("Enter new Room name:");
+            if (newRoom && newRoom.trim()) {
+                const opt = document.createElement('option');
+                opt.value = newRoom.trim();
+                opt.textContent = newRoom.trim();
+                roomSelect.appendChild(opt);
+                roomSelect.value = newRoom.trim();
+            }
+        });
+    }
+    // --- End Location Nav Logic ---
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
     const scanningState = document.getElementById('scanning-state');
@@ -106,10 +288,24 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedFiles.forEach(file => {
             formData.append('image', file);
         });
+        const homeSelect = document.getElementById('home-select');
+        const roomSelect = document.getElementById('room-select');
+        if (homeSelect) formData.append('home_name', homeSelect.value);
+        if (roomSelect) formData.append('room_name', roomSelect.value);
+
+        const headers = {};
+        const sessionStr = localStorage.getItem('holos_session');
+        if (sessionStr) {
+            try {
+                const sess = JSON.parse(sessionStr);
+                headers['Authorization'] = `Bearer ${sess.access_token}`;
+            } catch (e) { }
+        }
 
         try {
             const response = await fetch('/api/scan', {
                 method: 'POST',
+                  headers: headers,
                 body: formData
             });
 
