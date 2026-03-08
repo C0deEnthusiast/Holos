@@ -1,6 +1,6 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 from PIL import Image
 
@@ -11,7 +11,7 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
     raise ValueError("GEMINI_API_KEY is not set. Please check your .env file.")
 
-genai.configure(api_key=API_KEY)
+client = genai.Client(api_key=API_KEY)
 MODEL_ID = 'gemini-2.5-flash'
 
 def analyze_item(image_path: str) -> str:
@@ -39,22 +39,29 @@ def analyze_item(image_path: str) -> str:
     for attempt in range(max_retries):
         try:
             with Image.open(image_path) as image:
-                model = genai.GenerativeModel(MODEL_ID)
-                response = model.generate_content([prompt, image])
+                response = client.models.generate_content(
+                    model=MODEL_ID,
+                    contents=[prompt, image]
+                )
                 return response.text
-        except Exception as e:
-            if "429" in str(e) or "Resource has been exhausted" in str(e):
+        except genai.errors.ClientError as e:
+            if getattr(e, 'code', None) == 429 or '429' in str(e):
                 if attempt < max_retries - 1:
                     print(f"Rate limit hit. Retrying in {(attempt + 1) * 15} seconds...")
                     time.sleep((attempt + 1) * 15)
                 else:
-                    print(f"Error during analysis after {max_retries} attempts: {e}")
-                    return None
+                    print(f"Quota limits exhausted for {MODEL_ID}.")
+                    return "QUOTA_EXHAUSTED"
             else:
                 import traceback
                 print(f"Error during analysis: {e}")
                 traceback.print_exc()
                 return None
+        except Exception as e:
+            import traceback
+            print(f"Error during analysis: {e}")
+            traceback.print_exc()
+            return None
 
 def analyze_room(image_path: str) -> str:
     """Analyzes a wide room image to identify multiple featured items."""
@@ -104,17 +111,32 @@ def analyze_room(image_path: str) -> str:
     for attempt in range(max_retries):
         try:
             with Image.open(image_path) as image:
-                model = genai.GenerativeModel(MODEL_ID)
-                response = model.generate_content([prompt, image])
+                response = client.models.generate_content(
+                    model=MODEL_ID,
+                    contents=[prompt, image]
+                )
                 return response.text
+        except genai.errors.ClientError as e:
+            if getattr(e, 'code', None) == 429 or '429' in str(e):
+                if attempt < max_retries - 1:
+                    print(f"Rate limit hit. Retrying in {(attempt + 1) * 15} seconds...")
+                    time.sleep((attempt + 1) * 15)
+                else:
+                    print(f"Error during room scanning after {max_retries} attempts: Quota Exhausted")
+                    return "QUOTA_EXHAUSTED"
+            else:
+                import traceback
+                print(f"Error during room scanning: {e}")
+                traceback.print_exc()
+                return None
         except Exception as e:
             if "429" in str(e) or "Resource has been exhausted" in str(e) or "quota" in str(e).lower():
                 if attempt < max_retries - 1:
                     print(f"Rate limit hit. Retrying in {(attempt + 1) * 15} seconds...")
                     time.sleep((attempt + 1) * 15)
                 else:
-                    print(f"Error during room scanning after {max_retries} attempts: {e}")
-                    return None
+                    print(f"Error during room scanning after {max_retries} attempts: Quota Exhausted")
+                    return "QUOTA_EXHAUSTED"
             else:
                 import traceback
                 print(f"Error during room scanning: {e}")

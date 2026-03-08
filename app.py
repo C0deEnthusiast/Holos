@@ -6,7 +6,7 @@ from supabase import create_client, Client
 import scanner  # Import our existing scanning logic
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 app = Flask(__name__)
 
@@ -59,7 +59,9 @@ def scan_image():
                 result_str = scanner.analyze_room(filepath)
                 os.remove(filepath)
                 
-                if result_str:
+                if result_str == "QUOTA_EXHAUSTED":
+                    errors.append(f"Google AI Studio Quota Exceeded. Please upgrade your API key or wait for the free limit to reset.")
+                elif result_str:
                     # The scanner.py returns a JSON array string containing multiple items per image.
                     # We parse it here into a Python list so we can combine lists across all images.
                     import json
