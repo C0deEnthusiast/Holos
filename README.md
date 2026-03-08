@@ -9,7 +9,7 @@ Holos is a premier, intelligent home inventory application that leverages Google
 Keeping track of your valuable items is often tedious. Holos solves this by allowing you to simply snap a picture of a room or item. Our AI takes over, automatically extracting:
 - **Item Identification**: Name, Category, Make, and Model.
 - **Automated Valuation**: Real-time estimated market value based on the item's condition.
-- **Smart Parsing**: Context-aware extraction (e.g., Book Titles, Authors, ISBNs, and physical dimension estimations).
+- **Smart Parsing**: Context-aware extraction (e.g., Book Titles, Authors, and physical dimension estimations).
 
 ---
 
