@@ -84,6 +84,7 @@ def analyze_room(image_path: str) -> str:
     Do not deviate from this format.
     
     For each distinct item you identify, provide the name, category, make, specific model, and a rough estimated current market price in USD based on its condition and type. 
+    Also include the item's condition, suggested modern replacements, and a `bounding_box` array [ymin, xmin, ymax, xmax] using normalized coordinates (0-1000) for where the object is found in the image.
     
     IMPORTANT METADATA INSTRUCTIONS:
     - If you see brand logos or text on an item, use that information to accurately determine the `make` and `model`.
@@ -92,6 +93,7 @@ def analyze_room(image_path: str) -> str:
     - CRITICAL: You MUST provide an estimated dimension for EVERY item. Make a highly educated guess based on standard manufacturing sizes (e.g. a standard sofa is 84 inches, a standard dining chair is 36 inches tall). Do NOT say "cannot determine" or "N/A". Guessing is explicitly allowed and required.
     
     If you cannot confidently identify the make or model, provide a generic description but be as specific as possible.
+    IMPORTANT: Provide the physical object's real-world name. DO NOT return file names ending in .jpg, .png, etc.
     
     Return the response ONLY as a valid JSON array matching this schema:
     [
@@ -101,7 +103,10 @@ def analyze_room(image_path: str) -> str:
         "make": "string",
         "model": "string",
         "estimated_price_usd": "string",
-        "estimated_dimensions": "string"
+        "estimated_dimensions": "string",
+        "condition": "string",
+        "suggested_replacements": "string",
+        "bounding_box": [0, 0, 0, 0]
       }
     ]
     """
