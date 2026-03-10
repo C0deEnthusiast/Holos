@@ -14,7 +14,7 @@ if not API_KEY:
     raise ValueError("GEMINI_API_KEY is not set. Please check your .env file.")
 
 client = genai.Client(api_key=API_KEY)
-MODEL_ID = 'gemini-2.5-flash'
+MODEL_ID = 'gemini-3-flash-preview'
 
 def analyze_item(image_path: str) -> str:
     """Analyzes a single prominent item in an image."""
@@ -86,21 +86,8 @@ def analyze_room(image_path: str) -> str:
     - "Media > Books"
     Do not deviate from this format.
     
-<<<<<<< Updated upstream
     For each distinct item you identify, provide the name, category, make, specific model, and a rough estimated current market price in USD based on its condition and type. 
-    Also include the item's condition, suggested modern replacements, and a `bounding_box` array [ymin, xmin, ymax, xmax] using normalized coordinates (0-1000) for where the object is found in the image.
-=======
-    For each distinct item you identify, provide:
-    - name: Item name
-    - category: "Main Category > Subcategory"
-    - make: Identifying brand
-    - model: Identifying model
-    - estimated_price_usd: A numeric or dollar string estimate
-    - estimated_dimensions: Physical dimensions
-    - condition: Current condition (e.g. "Excellent", "Good", "Fair", "Needs repair")
-    - suggested_replacements: A string suggesting modern or alternative models for this item
-    - bounding_box: [ymin, xmin, ymax, xmax] normalized coordinates (0-1000) for where the object is in the image.
->>>>>>> Stashed changes
+    Also include the item's condition, suggested modern replacements, estimated_dimensions, and a `bounding_box` array [ymin, xmin, ymax, xmax] using normalized coordinates (0-1000) for where the object is found in the image.
     
     IMPORTANT METADATA INSTRUCTIONS:
     - If you see brand logos or text on an item, use that information to accurately determine the `make` and `model`.
@@ -122,11 +109,7 @@ def analyze_room(image_path: str) -> str:
         "estimated_dimensions": "string",
         "condition": "string",
         "suggested_replacements": "string",
-<<<<<<< Updated upstream
-        "bounding_box": [0, 0, 0, 0]
-=======
         "bounding_box": [number, number, number, number]
->>>>>>> Stashed changes
       }
     ]
     """
