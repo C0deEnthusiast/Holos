@@ -12,7 +12,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Holos needs access to your camera to scan and identify items in your home.",
+        "NSPhotoLibraryUsageDescription": "Holos needs access to your photos to upload room scans."
+      }
     },
     "android": {
       "adaptiveIcon": {
