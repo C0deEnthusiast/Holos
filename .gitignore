@@ -1,2 +1,35 @@
+# Environment & Secrets
 .env
-.venv
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+*.pyd
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Uploads (user data)
+uploads/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+error.txt
+api_test_out.txt
+test_results.json
+static/thumbnails/

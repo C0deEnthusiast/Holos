@@ -65,3 +65,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Indexing for optimized queries
+CREATE INDEX IF NOT EXISTS idx_scans_user_id ON scans(user_id);
+CREATE INDEX IF NOT EXISTS idx_items_user_id ON items(user_id);
+CREATE INDEX IF NOT EXISTS idx_items_scan_id ON items(scan_id);

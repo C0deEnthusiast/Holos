@@ -18,114 +18,81 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Load Remix Icons for sleek SVG icons -->
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
 </head>
 
 <body>
-
-    <!-- Landing & Auth Overlay -->
+    <div class="background-mesh"></div>
+    <div class="grid-overlay"></div>
     <div id="auth-overlay" class="auth-overlay landing-overlay">
-        <!-- Landing Navbar (Visible only on the landing page) -->
-        <nav class="landing-nav">
-            <div class="logo-container">
-                <img src="/static/HOLOS.jpg" alt="Holos Logo" class="landing-logo">
-                <span class="logo-text">Holos</span>
+        <div class="landing-centered">
+            <!-- Logo & Brand -->
+            <div class="landing-brand">
+                <div class="landing-logo-ring">
+                    <img src="/static/HOLOS.jpg" alt="Holos Logo" class="landing-hero-logo">
+                </div>
+                <h1 class="landing-app-name">Holos</h1>
             </div>
-            <div class="nav-links">
-                <a href="#features">Features</a>
-                <a href="#how-it-works">How it Works</a>
-                <button id="nav-login-btn" class="nav-login-btn">Sign In</button>
+
+            <!-- Auth Buttons (visible by default) -->
+            <div id="auth-buttons-group" class="auth-buttons-group">
+                <button id="show-signin-btn" class="auth-hero-btn auth-hero-btn-primary">
+                    <i class="ri-login-box-line"></i> Sign In
+                </button>
+                <button id="show-signup-btn" class="auth-hero-btn auth-hero-btn-secondary">
+                    <i class="ri-user-add-line"></i> Sign Up
+                </button>
+                <button id="quick-test-btn" class="auth-quick-test-btn">
+                    ⚡ Quick Demo — Use Test Account
+                </button>
             </div>
-        </nav>
 
-        <main class="landing-main">
-            <!-- Hero Section -->
-            <section class="landing-hero">
-                <div class="hero-content">
-                    <h1 class="hero-title">Your Home, Cataloged by AI</h1>
-                    <p class="hero-subtitle">Instantly identify, organize, and estimate the value of your assets with a
-                        single photo. The smartest way to manage your home inventory for insurance, moving, or peace of
-                        mind.</p>
-                    <div class="hero-actions">
-                        <!-- Marketing buttons removed as requested -->
+            <!-- Auth Form (hidden until Sign In / Sign Up clicked) -->
+            <div id="auth-form-section" class="auth-form-section hidden">
+                <div class="auth-container">
+                    <button id="close-auth-btn" class="close-auth-btn"><i class="ri-arrow-left-line"></i> Back</button>
+                    <h2 id="auth-title">Welcome Back</h2>
+                    <form id="auth-form" class="auth-form">
+                        <div id="fullname-group" class="form-group hidden">
+                            <label for="full_name">Full Name</label>
+                            <input type="text" id="full_name" placeholder="Your name">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" required placeholder="you@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" required placeholder="••••••••">
+                        </div>
+                        <button type="submit" class="auth-btn" id="auth-submit-btn">Sign In</button>
+                    </form>
+                    <div class="auth-toggle">
+                        <span id="auth-toggle-text">Don't have an account?</span>
+                        <a href="#" id="auth-toggle-link">Sign Up</a>
                     </div>
-                </div>
-            </section>
-
-            <!-- Features Section for SEO and Information -->
-            <section id="features" class="landing-features">
-                <div class="feature-card">
-                    <i class="ri-camera-lens-fill feature-icon"></i>
-                    <h3>AI Room Scanning</h3>
-                    <p>Snap a photo of any room and let Gemini AI automatically detect and catalog all valuable items
-                        seamlessly.</p>
-                </div>
-                <div class="feature-card">
-                    <i class="ri-money-dollar-circle-fill feature-icon"></i>
-                    <h3>Automated Valuation</h3>
-                    <p>Get instant market value estimations based on item condition, make, and model to ensure you're
-                        fully covered.</p>
-                </div>
-                <div class="feature-card">
-                    <i class="ri-book-read-fill feature-icon"></i>
-                    <h3>Smart Parsing</h3>
-                    <p>Automatically extract titles, authors, and even dimensions for books, media, and furniture.</p>
-                </div>
-            </section>
-        </main>
-
-        <!-- Auth Form Box (Hidden by default until 'Sign In' or 'Get Started' is clicked) -->
-        <div class="auth-box-wrapper hidden" id="auth-box-wrapper">
-            <div class="auth-container">
-                <button id="close-auth-btn" class="close-auth-btn"><i class="ri-close-line"></i></button>
-                <div class="logo-container">
-                    <img src="/static/HOLOS.jpg" alt="Holos Logo" class="auth-logo">
-                </div>
-                <h2 id="auth-title">Welcome Back</h2>
-                <p id="auth-subtitle" class="auth-subtitle">Sign in to continue to Holos</p>
-
-                <form id="auth-form" class="auth-form">
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" required placeholder="you@example.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" required placeholder="••••••••">
-                    </div>
-                    <button type="submit" class="auth-btn" id="auth-submit-btn">Sign In</button>
-                </form>
-
-                <div class="auth-toggle">
-                    <span id="auth-toggle-text">Don't have an account?</span>
-                    <a href="#" id="auth-toggle-link">Sign Up</a>
                 </div>
             </div>
         </div>
     </div>
 
+
     <div class="background-mesh"></div>
 
     <main class="container">
-
         <header class="header">
             <div id="user-profile-container"></div>
-
             <div class="header-main-content">
                 <div class="logo-container">
                     <img src="/static/HOLOS.jpg" alt="Holos Logo" class="logo">
                 </div>
                 <p class="subtitle">Intelligent Home Cataloging</p>
-
-                <!-- New Location Selector (Hidden until logged in) -->
                 <div id="location-selector" class="location-selector hidden">
                     <div class="select-group">
                         <i class="ri-home-smile-2-line"></i>
                         <select id="home-select" class="styled-select">
                             <option value="My House">My House</option>
                         </select>
-                        <button id="add-home-btn" class="icon-btn" title="Add Home"><i class="ri-add-line"></i></button>
                     </div>
                     <div class="select-divider">/</div>
                     <div class="select-group">
@@ -133,22 +100,21 @@
                         <select id="room-select" class="styled-select">
                             <option value="Living Room">Living Room</option>
                         </select>
-                        <button id="add-room-btn" class="icon-btn" title="Add Room"><i class="ri-add-line"></i></button>
                     </div>
                 </div>
             </div>
-
             <div class="header-actions">
-                <button id="my-inventory-btn" class="reset-btn hidden">
-                    <i class="ri-archive-line"></i> My Full Inventory
-                </button>
-                <button id="reset-btn" class="reset-btn hidden">
-                    <i class="ri-restart-line"></i> New Scan
-                </button>
+                <button id="my-inventory-btn" class="reset-btn hidden"><i class="ri-archive-line"></i> My Full
+                    Inventory</button>
+                <button id="reset-btn" class="reset-btn hidden"><i class="ri-restart-line"></i> New Scan</button>
             </div>
         </header>
 
         <section class="upload-section">
+            <div class="user-notes-container" style="margin-bottom: 20px; text-align: left;">
+                <label for="user-notes" style="display: block; font-weight: 500; font-size: 0.9rem; color: var(--text-main); margin-bottom: 8px;">Scan Context / Provenance Notes (Optional)</label>
+                <textarea id="user-notes" placeholder="e.g., Native American art piece bought in 1990..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-family: inherit; resize: vertical; min-height: 80px;"></textarea>
+            </div>
             <div id="drop-zone" class="drop-zone">
                 <input type="file" id="file-input" accept="image/*" class="file-input" multiple hidden>
                 <div class="drop-content">
@@ -173,34 +139,55 @@
             <p class="processing-text">Holos AI is analyzing your space...</p>
         </section>
 
-        <!-- Dynamic Results Container -->
         <section id="results-section" class="results-section hidden">
             <div class="results-header">
                 <h2>Inventory Catalog</h2>
-                <div class="search-container">
-                    <i class="ri-search-line search-icon"></i>
-                    <input type="text" id="asset-search" placeholder="Search items or categories...">
+                <div class="header-tools">
+                    <button id="generate-report-btn" class="report-btn"><i class="ri-file-chart-line"></i> Estate
+                        Report</button>
+                    <div class="search-container">
+                        <i class="ri-search-line search-icon"></i>
+                        <input type="text" id="asset-search" placeholder="Search items...">
+                    </div>
                 </div>
             </div>
-
-            <div class="results-tabs" id="results-tabs">
-                <button class="tab-btn hidden" id="recent-scan-tab">
-                    <i class="ri-focus-3-line"></i> Recent Scan
-                </button>
-                <button class="tab-btn active" id="active-items-tab">
-                    <i class="ri-list-check"></i> Standard Inventory
-                </button>
-                <button class="tab-btn" id="archived-items-tab">
-                    <i class="ri-archive-drawer-line"></i> Archive Folder
-                </button>
+            <div class="results-tabs">
+                <button class="tab-btn hidden" id="recent-scan-tab"><i class="ri-focus-3-line"></i> Recent Scan</button>
+                <button class="tab-btn active" id="active-items-tab"><i class="ri-list-check"></i> Standard
+                    Inventory</button>
+                <button class="tab-btn" id="archived-items-tab"><i class="ri-archive-drawer-line"></i> Archive
+                    Folder</button>
             </div>
-
-            <div id="cards-container" class="cards-container">
-                <!-- Cards injected via JS -->
-            </div>
+            <div id="cards-container" class="cards-container"></div>
         </section>
-
     </main>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="close-modal-btn" class="close-modal-btn"><i class="ri-close-line"></i></button>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Report Template -->
+    <template id="estate-report-template">
+        <div class="report-view">
+            <div class="report-header">
+                <h1>Estate Value Report</h1>
+                <p class="report-date"></p>
+            </div>
+            <div class="report-summary-box">
+                <div class="summary-item"><span>Total Items</span><span class="total-items">0</span></div>
+                <div class="summary-item highlighted"><span>Est. Liquidity</span><span class="total-value">$0.00</span>
+                </div>
+            </div>
+            <div id="report-details" class="report-details"></div>
+            <div class="report-footer">
+                <button class="print-btn" onclick="window.print()"><i class="ri-printer-line"></i> Print/PDF</button>
+            </div>
+        </div>
+    </template>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
