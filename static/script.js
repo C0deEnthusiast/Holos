@@ -103,11 +103,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Combine for rendering — auto-saved first, then review items
                 currentScanItems = [...autoSaved, ...needsReview];
 
-                // Pre-generate thumbnails locally for speed
+                // Pre-generate thumbnails locally for needs_review items (server only generates for auto-saved)
+                const firstFile = files[0];
                 for (let item of currentScanItems) {
-                    const originalFile = Array.from(files).find(f => f.name === item.original_filename);
-                    if (originalFile && item.bbox) {
-                        item.thumbnail_url = await generateThumbnail(originalFile, item.bbox);
+                    if (!item.thumbnail_url && firstFile && item.bounding_box) {
+                        item.thumbnail_url = await generateThumbnail(firstFile, item.bounding_box);
                     }
                 }
 
@@ -147,13 +147,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 const [ymin, xmin, ymax, xmax] = bbox;
-                const x = (xmin / 1000) * img.width;
-                const y = (ymin / 1000) * img.height;
-                const w = ((xmax - xmin) / 1000) * img.width;
-                const h = ((ymax - ymin) / 1000) * img.height;
-                canvas.width = w; canvas.height = h;
-                ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
-                resolve(canvas.toDataURL('image/jpeg', 0.8));
+                const pad = 0.15;
+                const padX = ((xmax - xmin) / 1000) * img.width * pad;
+                const padY = ((ymax - ymin) / 1000) * img.height * pad;
+                // Padded source rect, clamped to image bounds
+                const sx = Math.max(0, (xmin / 1000) * img.width - padX);
+                const sy = Math.max(0, (ymin / 1000) * img.height - padY);
+                const ex = Math.min(img.width, (xmax / 1000) * img.width + padX);
+                const ey = Math.min(img.height, (ymax / 1000) * img.height + padY);
+                const sw = ex - sx;
+                const sh = ey - sy;
+                if (sw <= 0 || sh <= 0) { resolve(null); return; }
+                // Output at natural aspect ratio — object-fit: cover fills the card without letterboxing
+                const maxSize = 800;
+                const scale = Math.min(maxSize / sw, maxSize / sh);
+                canvas.width = Math.round(sw * scale);
+                canvas.height = Math.round(sh * scale);
+                ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
             };
             img.src = URL.createObjectURL(file);
         });
@@ -285,11 +296,34 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="checkbox" class="item-select-chk" data-tempid="${item.tempId}" data-index="${items.indexOf(item)}">
                         </div>
                         ${statusBar}
-                        <div class="asset-thumbnail-container">
-                            <img src="${item.thumbnail_url || '/static/HOLOS.jpg'}" class="asset-thumbnail">
-                            <span class="condition-badge ${badgeClass}">${item.condition || 'Good'}</span>
-                            ${qtyBadge}
-                            ${setPill}
+                        <div class="asset-thumbnail-container" id="thumbwrap-${item.tempId}">
+                            <div class="thumb-single-view">
+                                <img src="${item.thumbnail_url || '/static/HOLOS.jpg'}" class="asset-thumbnail">
+                                <span class="condition-badge ${badgeClass}">${item.condition || 'Good'}</span>
+                                ${qtyBadge}
+                                ${setPill}
+                                <button class="compare-btn"
+                                    data-tempid="${item.tempId}"
+                                    data-name="${(item.name || '').replace(/"/g, '&quot;')}"
+                                    data-make="${(item.make || '').replace(/"/g, '&quot;')}"
+                                    data-model="${(item.model || '').replace(/"/g, '&quot;')}"
+                                    data-scanned="${item.thumbnail_url || '/static/HOLOS.jpg'}">
+                                    <i class="ri-image-2-line"></i> Compare
+                                </button>
+                            </div>
+                            <div class="thumb-compare-view hidden" id="compare-view-${item.tempId}">
+                                <div class="compare-pane">
+                                    <img src="${item.thumbnail_url || '/static/HOLOS.jpg'}" class="compare-img">
+                                    <span class="compare-label">Scanned</span>
+                                </div>
+                                <div class="compare-pane" id="google-pane-${item.tempId}">
+                                    <div class="compare-loading"><i class="ri-loader-4-line ri-spin"></i></div>
+                                    <span class="compare-label">Google</span>
+                                </div>
+                                <button class="compare-close-btn" data-tempid="${item.tempId}">
+                                    <i class="ri-close-line"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="asset-content">
                             <div class="card-header">
@@ -575,28 +609,68 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         });
+
+        bindCompareButtons();
+    }
+
+    function bindCompareButtons() {
+        document.querySelectorAll('.compare-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const tempId = btn.getAttribute('data-tempid');
+                const singleView = btn.closest('.thumb-single-view');
+                const compareView = document.getElementById(`compare-view-${tempId}`);
+                if (!compareView) return;
+
+                singleView.classList.add('hidden');
+                compareView.classList.remove('hidden');
+
+                const googlePane = document.getElementById(`google-pane-${tempId}`);
+                if (googlePane && !googlePane.dataset.loaded) {
+                    const name = btn.getAttribute('data-name');
+                    const make = btn.getAttribute('data-make');
+                    const model = btn.getAttribute('data-model');
+                    try {
+                        const params = new URLSearchParams({ q: name });
+                        if (make) params.append('make', make);
+                        if (model) params.append('model', model);
+                        const res = await fetch(`/api/image-search?${params}`);
+                        const data = await res.json();
+                        if (data.url) {
+                            googlePane.innerHTML = `
+                                <img src="${data.url}" class="compare-img" onerror="this.src='/static/HOLOS.jpg'">
+                                <span class="compare-label">Google</span>`;
+                        } else {
+                            googlePane.innerHTML = `
+                                <div class="compare-empty">
+                                    <i class="ri-image-2-line"></i>
+                                    <span>No image found</span>
+                                </div>
+                                <span class="compare-label">Google</span>`;
+                        }
+                    } catch {
+                        googlePane.innerHTML = `
+                            <div class="compare-empty"><span>Failed to load</span></div>
+                            <span class="compare-label">Google</span>`;
+                    }
+                    googlePane.dataset.loaded = 'true';
+                }
+            });
+        });
+
+        document.querySelectorAll('.compare-close-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const tempId = btn.getAttribute('data-tempid');
+                document.getElementById(`thumbwrap-${tempId}`)
+                    ?.querySelector('.thumb-single-view')?.classList.remove('hidden');
+                document.getElementById(`compare-view-${tempId}`)?.classList.add('hidden');
+            });
+        });
     }
 
     function applyTiltEffect() {
-        document.querySelectorAll('.asset-card').forEach(card => {
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-                const rotateX = (centerY - y) / 10;
-                const rotateY = (x - centerX) / 10;
-                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-8px) scale(1.02)`;
-                card.style.borderColor = 'var(--primary)';
-                card.style.boxShadow = `0 20px 40px rgba(0,0,0,0.5), 0 0 20px rgba(0, 255, 242, 0.2)`;
-            });
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0) scale(1)';
-                card.style.borderColor = 'var(--card-border)';
-                card.style.boxShadow = 'none';
-            });
-        });
+        // Tilt removed — CSS hover handles lift/glow without 3D rotation jitter
     }
 
     function applyAccordionLogic() {
@@ -604,8 +678,13 @@ document.addEventListener('DOMContentLoaded', () => {
             trigger.addEventListener('click', () => {
                 const content = trigger.nextElementSibling;
                 trigger.classList.toggle('active');
-                if (content.style.maxHeight) content.style.maxHeight = null;
-                else content.style.maxHeight = content.scrollHeight + "px";
+                if (content.style.maxHeight) {
+                    content.style.maxHeight = null;
+                    content.classList.remove('is-open');
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                    content.classList.add('is-open');
+                }
             });
         });
         // Open first one by default

@@ -69,4 +69,4 @@ if __name__ == "__main__":
     print(f"  Test Accounts:  {'Enabled' if Config.ENABLE_TEST_ACCOUNTS else 'Disabled'}")
     print(f"  Sniper Mode:    {'Enabled' if Config.ENABLE_SNIPER_MODE else 'Disabled'}")
     print()
-    app.run(debug=Config.DEBUG, host="0.0.0.0", port=5000)
+    app.run(debug=Config.DEBUG, host="0.0.0.0", port=5001)

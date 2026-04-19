@@ -46,37 +46,17 @@ def get_refined_thumbnail(original_path, item_name, rough_box, upload_folder):
             right = (xmax / 1000) * width
             bottom = (ymax / 1000) * height
 
-            # Calculate object center and dimensions
-            obj_width = right - left
-            obj_height = bottom - top
-            center_x = left + obj_width / 2
-            center_y = top + obj_height / 2
+            # Padded crop at natural aspect ratio — no square forcing
+            pad = 0.15
+            pad_x = (right - left) * pad
+            pad_y = (bottom - top) * pad
 
-            # Use the larger dimension + 15% padding to create a square
-            max_dim = max(obj_width, obj_height) * 1.15
-            half_dim = max_dim / 2
+            crop_left = left - pad_x
+            crop_top = top - pad_y
+            crop_right = right + pad_x
+            crop_bottom = bottom + pad_y
 
-            crop_left = center_x - half_dim
-            crop_top = center_y - half_dim
-            crop_right = center_x + half_dim
-            crop_bottom = center_y + half_dim
-
-            # Try to shift the bounding box if it exceeds the image boundaries
-            if crop_left < 0:
-                crop_right -= crop_left  # shift right
-                crop_left = 0
-            if crop_top < 0:
-                crop_bottom -= crop_top  # shift down
-                crop_top = 0
-                
-            if crop_right > width:
-                crop_left -= (crop_right - width)
-                crop_right = width
-            if crop_bottom > height:
-                crop_top -= (crop_bottom - height)
-                crop_bottom = height
-
-            # Final safety clamp
+            # Clamp to image bounds
             crop_left = max(0, crop_left)
             crop_top = max(0, crop_top)
             crop_right = min(width, crop_right)
@@ -86,22 +66,16 @@ def get_refined_thumbnail(original_path, item_name, rough_box, upload_folder):
                 return None, rough_box
 
             thumb_img = img.crop((crop_left, crop_top, crop_right, crop_bottom))
-            
+
             if thumb_img.mode in ("RGBA", "P"):
                 thumb_img = thumb_img.convert("RGB")
-                
-            # Guarantee a perfect square (if image was too small for shifting)
+
+            # thumbnail() only shrinks — use resize() so small crops upscale to 800px too
             cw, ch = thumb_img.size
-            if cw != ch:
-                sq_size = int(max(cw, ch))
-                # Use a dark modern background that matches the app theme
-                square_img = Image.new("RGB", (sq_size, sq_size), (15, 17, 21))
-                paste_x = (sq_size - cw) // 2
-                paste_y = (sq_size - ch) // 2
-                square_img.paste(thumb_img, (paste_x, paste_y))
-                thumb_img = square_img
-                
-            thumb_img.thumbnail((800, 800))
+            scale = min(800 / cw, 800 / ch)
+            new_w, new_h = max(1, round(cw * scale)), max(1, round(ch * scale))
+            resample = Image.LANCZOS if scale < 1 else Image.BICUBIC
+            thumb_img = thumb_img.resize((new_w, new_h), resample)
             
             thumb_name = f"thumb_{uuid.uuid4().hex[:8]}.jpg"
             thumb_path = os.path.join(upload_folder, thumb_name)
@@ -111,6 +85,49 @@ def get_refined_thumbnail(original_path, item_name, rough_box, upload_folder):
     except Exception as e:
         print(f"Crop Error: {e}")
         return None, rough_box
+
+
+def fetch_product_image_url(name, make=None, model=None):
+    """Search Google Images for a product photo when no crop thumbnail is available."""
+    api_key = Config.GOOGLE_API_KEY
+    cse_id = Config.GOOGLE_CSE_ID
+    if not api_key or not cse_id:
+        print("  [WEB] GOOGLE_API_KEY or GOOGLE_CSE_ID not set — skipping web image fetch")
+        return None
+    try:
+        import requests as req
+        _junk = {"n/a", "unknown", "unidentified", "none", "", "—", "-"}
+        def _clean(v):
+            if not v:
+                return None
+            stripped = v.strip()
+            return None if stripped.lower() in _junk or stripped.startswith("Unidentified") else stripped
+        parts = [p for p in [_clean(make), _clean(model), name] if p]
+        query = " ".join(parts) + " product photo"
+        resp = req.get(
+            "https://www.googleapis.com/customsearch/v1",
+            params={
+                "key": api_key,
+                "cx": cse_id,
+                "q": query,
+                "searchType": "image",
+                "num": 5,
+                "imgType": "photo",
+                "safe": "active",
+            },
+            timeout=8,
+        )
+        resp.raise_for_status()
+        items = resp.json().get("items", [])
+        for item in items:
+            url = item.get("link", "")
+            if url and any(ext in url.lower() for ext in (".jpg", ".jpeg", ".png", ".webp")):
+                return url
+        if items:
+            return items[0].get("link")
+    except Exception as e:
+        print(f"  [WEB] Google image search failed for '{name}': {e}")
+    return None
 
 
 @scan_bp.route("/scan", methods=["POST"])
@@ -200,6 +217,20 @@ def scan_image():
                                 os.remove(thumb_path)
                         except Exception as thumb_err:
                             print(f"ERROR: Thumbnail_{i} upload failed: {thumb_err}")
+
+                # 4. Web image fallback: if still no thumbnail, search the internet
+                if not item.get("thumbnail_url"):
+                    web_url = fetch_product_image_url(
+                        item.get("name", ""),
+                        item.get("make"),
+                        item.get("model"),
+                    )
+                    if web_url:
+                        item["thumbnail_url"] = web_url
+                        item["thumbnail_source"] = "web"
+                        print(f"  [WEB] Fallback image fetched for: {item.get('name')}")
+                    else:
+                        print(f"  [WEB] No fallback image found for: {item.get('name')}")
 
             all_results.extend(items)
         except Exception as e:
@@ -318,4 +349,17 @@ def scan_image():
         },
         "errors": errors if errors else None,
     })
+
+
+@scan_bp.route("/image-search", methods=["GET"])
+def image_search():
+    name = request.args.get("q", "").strip()
+    make = request.args.get("make", "").strip() or None
+    model = request.args.get("model", "").strip() or None
+    if not name:
+        return jsonify({"error": "Missing query parameter 'q'"}), 400
+    url = fetch_product_image_url(name, make, model)
+    if url:
+        return jsonify({"url": url})
+    return jsonify({"url": None, "error": "No image found"}), 404
 

@@ -28,6 +28,10 @@ class Config:
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
     GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3-flash-preview")
 
+    # Google Custom Search (for web image fallback)
+    GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+    GOOGLE_CSE_ID = os.environ.get("GOOGLE_CSE_ID")
+
     # Feature Flags
     ENABLE_TEST_ACCOUNTS = os.environ.get("ENABLE_TEST_ACCOUNTS", "true").lower() == "true"
     ENABLE_SNIPER_MODE = os.environ.get("ENABLE_SNIPER_MODE", "true").lower() == "true"
