@@ -19,6 +19,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 </head>
 
 <body>
@@ -79,94 +80,689 @@
 
     <div class="background-mesh"></div>
 
-    <main class="container">
-        <header class="header">
-            <div id="user-profile-container"></div>
-            <div class="header-main-content">
-                <div class="logo-container">
-                    <img src="/static/HOLOS.jpg" alt="Holos Logo" class="logo">
-                </div>
-                <p class="subtitle">Intelligent Home Cataloging</p>
-                <div id="location-selector" class="location-selector hidden">
-                    <div class="select-group">
-                        <i class="ri-home-smile-2-line"></i>
-                        <select id="home-select" class="styled-select">
-                            <option value="My House">My House</option>
-                        </select>
-                    </div>
-                    <div class="select-divider">/</div>
-                    <div class="select-group">
-                        <i class="ri-layout-masonry-line"></i>
-                        <select id="room-select" class="styled-select">
-                            <option value="Living Room">Living Room</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="header-actions">
-                <button id="my-inventory-btn" class="reset-btn hidden"><i class="ri-archive-line"></i> My Full
-                    Inventory</button>
-                <button id="reset-btn" class="reset-btn hidden"><i class="ri-restart-line"></i> New Scan</button>
-            </div>
-        </header>
+    <!-- ═══════════════════════════════════════════════════════
+         App Shell (hidden until login, wraps sidebar + content)
+         ═══════════════════════════════════════════════════════ -->
+    <div id="app-shell" class="app-shell hidden">
 
-        <section class="upload-section">
-            <div class="user-notes-container" style="margin-bottom: 20px; text-align: left;">
-                <label for="user-notes" style="display: block; font-weight: 500; font-size: 0.9rem; color: var(--text-main); margin-bottom: 8px;">Scan Context / Provenance Notes (Optional)</label>
-                <textarea id="user-notes" placeholder="e.g., Native American art piece bought in 1990..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-family: inherit; resize: vertical; min-height: 80px;"></textarea>
+        <!-- Sidebar Navigation -->
+        <nav id="app-sidebar" class="app-sidebar">
+            <div class="sidebar-brand">
+                <img src="/static/HOLOS.jpg" alt="Holos" class="sidebar-logo">
+                <span class="sidebar-title">Holos</span>
             </div>
-            <div id="drop-zone" class="drop-zone">
-                <input type="file" id="file-input" accept="image/*" class="file-input" multiple hidden>
-                <div class="drop-content">
-                    <i class="ri-camera-lens-line drop-icon"></i>
-                    <h3>Tap to scan single or multiple pictures</h3>
-                    <p>or drag and drop images here</p>
+            <div class="sidebar-nav">
+                <button class="sidebar-tab active" data-tab="dashboard">
+                    <i class="ri-dashboard-line"></i><span>Dashboard</span>
+                </button>
+                <button class="sidebar-tab" data-tab="inventory">
+                    <i class="ri-camera-lens-line"></i><span>Inventory</span>
+                </button>
+                <button class="sidebar-tab" data-tab="maintenance">
+                    <i class="ri-tools-line"></i><span>Maintenance</span>
+                </button>
+                <button class="sidebar-tab" data-tab="projects">
+                    <i class="ri-hammer-line"></i><span>Projects</span>
+                </button>
+                <button class="sidebar-tab" data-tab="finances">
+                    <i class="ri-money-dollar-circle-line"></i><span>Finances</span>
+                </button>
+                <button class="sidebar-tab" data-tab="ai-assistant">
+                    <i class="ri-robot-2-line"></i><span>AI Assistant</span>
+                </button>
+            </div>
+            <div class="sidebar-footer">
+                <div id="sidebar-user-info" class="sidebar-user-info"></div>
+                <button id="sidebar-logout-btn" class="sidebar-logout-btn">
+                    <i class="ri-logout-box-r-line"></i><span>Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main id="app-content" class="app-content">
+
+        <!-- ── TAB: Dashboard ── -->
+        <section id="tab-dashboard" class="tab-content active">
+            <div class="dashboard-header">
+                <div>
+                    <h1 class="dashboard-title">Welcome to Holos</h1>
+                    <p class="dashboard-subtitle">Your complete home management hub</p>
                 </div>
-                <div id="file-count-badge" class="file-count-badge hidden">
-                    <span id="file-count-text">0 files selected</span>
-                    <button id="start-scan-btn" class="start-scan-btn">Scan Now</button>
-                    <p class="save-location-status">Saving to: <span id="save-location-info">My House / Living
-                            Room</span></p>
+                <div class="dashboard-actions">
+                    <button id="dash-new-scan-btn" class="dash-action-btn primary"><i class="ri-camera-lens-line"></i> New Scan</button>
+                    <button id="dash-report-btn" class="dash-action-btn secondary"><i class="ri-file-chart-line"></i> Estate Report</button>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dash-card" id="dash-inventory-card">
+                    <div class="dash-card-icon"><i class="ri-archive-line"></i></div>
+                    <div class="dash-card-body">
+                        <span class="dash-card-label">Total Items</span>
+                        <span class="dash-card-value" id="dash-total-items">—</span>
+                    </div>
+                    <div class="dash-card-footer">Across all properties</div>
+                </div>
+                <div class="dash-card accent" id="dash-value-card">
+                    <div class="dash-card-icon"><i class="ri-money-dollar-circle-line"></i></div>
+                    <div class="dash-card-body">
+                        <span class="dash-card-label">Est. Total Value</span>
+                        <span class="dash-card-value" id="dash-total-value">—</span>
+                    </div>
+                    <div class="dash-card-footer">Based on AI appraisal</div>
+                </div>
+                <div class="dash-card" id="dash-properties-card">
+                    <div class="dash-card-icon"><i class="ri-home-smile-2-line"></i></div>
+                    <div class="dash-card-body">
+                        <span class="dash-card-label">Properties</span>
+                        <span class="dash-card-value" id="dash-properties-count">—</span>
+                    </div>
+                    <div class="dash-card-footer">Homes configured</div>
+                </div>
+                <div class="dash-card" id="dash-maintenance-card">
+                    <div class="dash-card-icon"><i class="ri-tools-line"></i></div>
+                    <div class="dash-card-body">
+                        <span class="dash-card-label">Maintenance</span>
+                        <span class="dash-card-value" id="dash-maint-count">Coming Soon</span>
+                    </div>
+                    <div class="dash-card-footer">Tasks due this month</div>
+                </div>
+            </div>
+
+            <div class="dashboard-modules">
+                <h2 class="section-heading"><i class="ri-apps-line"></i> Quick Access</h2>
+                <div class="modules-grid">
+                    <button class="module-card" data-goto="inventory">
+                        <i class="ri-camera-lens-line"></i>
+                        <h3>Scan & Catalog</h3>
+                        <p>AI-powered room scanning to identify, value, and organize items</p>
+                    </button>
+                    <button class="module-card" data-goto="maintenance">
+                        <i class="ri-tools-line"></i>
+                        <h3>Maintenance</h3>
+                        <p>Seasonal schedules, reminders, and task tracking</p>
+                    </button>
+                    <button class="module-card" data-goto="projects">
+                        <i class="ri-hammer-line"></i>
+                        <h3>Home Projects</h3>
+                        <p>Budget and track remodels, repairs, and improvements</p>
+                    </button>
+                    <button class="module-card" data-goto="finances">
+                        <i class="ri-money-dollar-circle-line"></i>
+                        <h3>Home Finances</h3>
+                        <p>Mortgage, equity, expenses, and value forecasting</p>
+                    </button>
+                    <button class="module-card" data-goto="ai-assistant">
+                        <i class="ri-robot-2-line"></i>
+                        <h3>AI Assistant</h3>
+                        <p>Ask Gemini anything about your home — maintenance, value, insurance</p>
+                    </button>
+                    <button class="module-card" data-goto="inventory" id="module-visual-ai">
+                        <i class="ri-magic-line"></i>
+                        <h3>Visual Design AI</h3>
+                        <p>Reimagine rooms with AI-generated design concepts</p>
+                        <span class="module-badge">Coming Soon</span>
+                    </button>
                 </div>
             </div>
         </section>
 
-        <section id="scanning-state" class="scanning-state hidden">
-            <div class="scanner-animation">
-                <div class="scan-line"></div>
-                <img id="preview-image" src="" alt="Scanning Preview" class="preview-image">
+        <!-- ── TAB: Inventory (existing scan flow) ── -->
+        <section id="tab-inventory" class="tab-content">
+            <div class="container">
+                <header class="header">
+                    <div id="user-profile-container"></div>
+                    <div class="header-main-content">
+                        <div id="location-selector" class="location-selector hidden">
+                            <div class="select-group">
+                                <i class="ri-home-smile-2-line"></i>
+                                <select id="home-select" class="styled-select">
+                                    <option value="My House">My House</option>
+                                    <option value="Vacation Home">Vacation Home</option>
+                                    <option value="Rental Property">Rental Property</option>
+                                    <option value="Office">Office</option>
+                                    <option value="Storage Unit">Storage Unit</option>
+                                    <option value="__custom__">+ Add New…</option>
+                                </select>
+                                <input type="text" id="home-custom-input" class="styled-select custom-location-input hidden" placeholder="Enter property name…" />
+                            </div>
+                            <div class="select-divider">/</div>
+                            <div class="select-group">
+                                <i class="ri-layout-masonry-line"></i>
+                                <select id="room-select" class="styled-select">
+                                    <option value="Living Room">Living Room</option>
+                                    <option value="Kitchen">Kitchen</option>
+                                    <option value="Master Bedroom">Master Bedroom</option>
+                                    <option value="Bedroom">Bedroom</option>
+                                    <option value="Bathroom">Bathroom</option>
+                                    <option value="Dining Room">Dining Room</option>
+                                    <option value="Garage">Garage</option>
+                                    <option value="Basement">Basement</option>
+                                    <option value="Attic">Attic</option>
+                                    <option value="Home Office">Home Office</option>
+                                    <option value="Patio/Deck">Patio/Deck</option>
+                                    <option value="Closet">Closet</option>
+                                    <option value="Laundry Room">Laundry Room</option>
+                                    <option value="__custom__">+ Add New…</option>
+                                </select>
+                                <input type="text" id="room-custom-input" class="styled-select custom-location-input hidden" placeholder="Enter room name…" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <button id="generate-report-btn" class="reset-btn report-btn hidden"><i class="ri-file-chart-line"></i> Estate Report</button>
+                        <button id="my-inventory-btn" class="reset-btn hidden"><i class="ri-archive-line"></i> My Full Inventory</button>
+                        <button id="reset-btn" class="reset-btn hidden"><i class="ri-restart-line"></i> New Scan</button>
+                    </div>
+                </header>
+
+                <section class="upload-section">
+                    <div class="user-notes-container" style="margin-bottom: 20px; text-align: left;">
+                        <label for="user-notes" style="display: block; font-weight: 500; font-size: 0.9rem; color: var(--text-main); margin-bottom: 8px;">Scan Context / Provenance Notes (Optional)</label>
+                        <textarea id="user-notes" placeholder="e.g., Native American art piece bought in 1990..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-family: inherit; resize: vertical; min-height: 80px;"></textarea>
+                    </div>
+                    <div id="drop-zone" class="drop-zone">
+                        <input type="file" id="file-input" accept="image/*" class="file-input" multiple hidden>
+                        <div class="drop-content">
+                            <i class="ri-camera-lens-line drop-icon"></i>
+                            <h3>Tap to scan single or multiple pictures</h3>
+                            <p>or drag and drop images here</p>
+                        </div>
+                        <div id="file-count-badge" class="file-count-badge hidden">
+                            <span id="file-count-text">0 files selected</span>
+                            <button id="start-scan-btn" class="start-scan-btn">Scan Now</button>
+                            <p class="save-location-status">Saving to: <span id="save-location-info">My House / Living Room</span></p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="scanning-state" class="scanning-state hidden">
+                    <div class="scanner-animation">
+                        <div class="scan-line"></div>
+                        <img id="preview-image" src="" alt="Scanning Preview" class="preview-image">
+                    </div>
+                    <p class="processing-text">Holos AI is analyzing your space...</p>
+                </section>
+
+                <section id="results-section" class="results-section hidden">
+                    <div class="results-header">
+                        <h2>Inventory Catalog</h2>
+                        <div class="header-tools">
+                            <div class="search-container">
+                                <i class="ri-search-line search-icon"></i>
+                                <input type="text" id="asset-search" placeholder="Search items...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="results-tabs">
+                        <button class="tab-btn hidden" id="recent-scan-tab"><i class="ri-focus-3-line"></i> Recent Scan</button>
+                        <button class="tab-btn active" id="active-items-tab"><i class="ri-list-check"></i> Standard Inventory</button>
+                        <button class="tab-btn" id="archived-items-tab"><i class="ri-archive-drawer-line"></i> Archive Folder</button>
+                    </div>
+                    <div id="cards-container" class="cards-container"></div>
+                </section>
             </div>
-            <p class="processing-text">Holos AI is analyzing your space...</p>
         </section>
 
-        <section id="results-section" class="results-section hidden">
-            <div class="results-header">
-                <h2>Inventory Catalog</h2>
-                <div class="header-tools">
-                    <button id="generate-report-btn" class="report-btn"><i class="ri-file-chart-line"></i> Estate
-                        Report</button>
-                    <div class="search-container">
-                        <i class="ri-search-line search-icon"></i>
-                        <input type="text" id="asset-search" placeholder="Search items...">
+        <!-- ── TAB: Maintenance (Placeholder) ── -->
+        <section id="tab-maintenance" class="tab-content">
+            <div class="maint-header">
+                <div>
+                    <h1 class="dashboard-title"><i class="ri-tools-line" style="color:var(--primary);margin-right:0.5rem"></i>Home Maintenance</h1>
+                    <p class="dashboard-subtitle">Keep your home in peak condition with AI-powered schedules</p>
+                </div>
+                <div class="dashboard-actions">
+                    <button id="maint-generate-btn" class="dash-action-btn primary">
+                        <i class="ri-magic-line"></i> Generate AI Schedule
+                    </button>
+                    <button id="maint-add-btn" class="dash-action-btn secondary">
+                        <i class="ri-add-line"></i> Add Task
+                    </button>
+                </div>
+            </div>
+
+            <!-- Season Filter Tabs -->
+            <div class="maint-filters">
+                <button class="maint-filter active" data-season="all"><i class="ri-calendar-line"></i> All</button>
+                <button class="maint-filter" data-season="Spring"><i class="ri-seedling-line"></i> Spring</button>
+                <button class="maint-filter" data-season="Summer"><i class="ri-sun-line"></i> Summer</button>
+                <button class="maint-filter" data-season="Fall"><i class="ri-leaf-line"></i> Fall</button>
+                <button class="maint-filter" data-season="Winter"><i class="ri-snowy-line"></i> Winter</button>
+                <button class="maint-filter" data-season="Monthly"><i class="ri-repeat-line"></i> Monthly</button>
+            </div>
+
+            <!-- Stats Summary -->
+            <div class="maint-stats" id="maint-stats">
+                <div class="maint-stat">
+                    <span class="maint-stat-value" id="maint-total">0</span>
+                    <span class="maint-stat-label">Total Tasks</span>
+                </div>
+                <div class="maint-stat">
+                    <span class="maint-stat-value" id="maint-overdue" style="color:var(--danger)">0</span>
+                    <span class="maint-stat-label">Overdue</span>
+                </div>
+                <div class="maint-stat">
+                    <span class="maint-stat-value" id="maint-upcoming" style="color:var(--warning)">0</span>
+                    <span class="maint-stat-label">Upcoming</span>
+                </div>
+                <div class="maint-stat">
+                    <span class="maint-stat-value" id="maint-completed" style="color:var(--success)">0</span>
+                    <span class="maint-stat-label">Completed</span>
+                </div>
+            </div>
+
+            <!-- Task List -->
+            <div id="maint-tasks-container" class="maint-tasks-container">
+                <div class="maint-empty-state" id="maint-empty">
+                    <i class="ri-tools-line"></i>
+                    <h3>No maintenance tasks yet</h3>
+                    <p>Click <strong>"Generate AI Schedule"</strong> to create a personalized maintenance plan based on your property details, or add tasks manually.</p>
+                </div>
+            </div>
+
+            <!-- Add Task Modal -->
+            <div id="maint-add-modal" class="modal-overlay hidden">
+                <div class="modal-content property-setup-modal">
+                    <button id="close-maint-modal" class="close-modal-btn"><i class="ri-close-line"></i></button>
+                    <div class="property-setup">
+                        <div class="property-setup-header">
+                            <i class="ri-add-circle-line" style="font-size:2rem; color:var(--primary)"></i>
+                            <h2>Add Maintenance Task</h2>
+                        </div>
+                        <div class="property-form">
+                            <div class="property-field">
+                                <label><i class="ri-text"></i> Title</label>
+                                <input type="text" id="maint-task-title" placeholder="e.g. Change HVAC Filters" />
+                            </div>
+                            <div class="property-field">
+                                <label><i class="ri-file-text-line"></i> Description</label>
+                                <input type="text" id="maint-task-desc" placeholder="What needs to be done and why" />
+                            </div>
+                            <div class="property-counters">
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-price-tag-3-line"></i> Category</label>
+                                    <select id="maint-task-cat" class="styled-select" style="width:100%">
+                                        <option>HVAC</option><option>Plumbing</option>
+                                        <option>Electrical</option><option>Exterior</option>
+                                        <option>Interior</option><option>Appliance</option>
+                                        <option>Safety</option><option>Landscaping</option>
+                                        <option>General</option>
+                                    </select>
+                                </div>
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-calendar-line"></i> Season</label>
+                                    <select id="maint-task-season" class="styled-select" style="width:100%">
+                                        <option>Spring</option><option>Summer</option>
+                                        <option>Fall</option><option>Winter</option>
+                                        <option>Monthly</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="property-counters">
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-flag-line"></i> Priority</label>
+                                    <select id="maint-task-priority" class="styled-select" style="width:100%">
+                                        <option value="low">Low</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="high">High</option>
+                                        <option value="critical">Critical</option>
+                                    </select>
+                                </div>
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-calendar-check-line"></i> Due Date</label>
+                                    <input type="date" id="maint-task-due" class="styled-select" style="width:100%" />
+                                </div>
+                            </div>
+                            <button id="maint-save-task" class="auth-btn" style="width:100%; margin-top:1rem">
+                                <i class="ri-check-line"></i> Save Task
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="results-tabs">
-                <button class="tab-btn hidden" id="recent-scan-tab"><i class="ri-focus-3-line"></i> Recent Scan</button>
-                <button class="tab-btn active" id="active-items-tab"><i class="ri-list-check"></i> Standard
-                    Inventory</button>
-                <button class="tab-btn" id="archived-items-tab"><i class="ri-archive-drawer-line"></i> Archive
-                    Folder</button>
-            </div>
-            <div id="cards-container" class="cards-container"></div>
         </section>
+
+        <!-- ── TAB: Projects ── -->
+        <section id="tab-projects" class="tab-content">
+            <div class="maint-header">
+                <div>
+                    <h1 class="dashboard-title"><i class="ri-hammer-line" style="color:var(--primary);margin-right:0.5rem"></i>Home Projects</h1>
+                    <p class="dashboard-subtitle">Track remodels, repairs, and improvements with budgets and timelines</p>
+                </div>
+                <div class="dashboard-actions">
+                    <button id="proj-add-btn" class="dash-action-btn primary"><i class="ri-add-line"></i> Add Project</button>
+                </div>
+            </div>
+
+            <!-- Project Stats -->
+            <div class="maint-stats">
+                <div class="maint-stat">
+                    <span class="maint-stat-value" id="proj-total">0</span>
+                    <span class="maint-stat-label">Total Projects</span>
+                </div>
+                <div class="maint-stat">
+                    <span class="maint-stat-value" id="proj-active" style="color:var(--primary)">0</span>
+                    <span class="maint-stat-label">In Progress</span>
+                </div>
+                <div class="maint-stat">
+                    <span class="maint-stat-value" id="proj-budget" style="color:var(--warning)">$0</span>
+                    <span class="maint-stat-label">Total Budget</span>
+                </div>
+                <div class="maint-stat">
+                    <span class="maint-stat-value" id="proj-spent" style="color:var(--danger)">$0</span>
+                    <span class="maint-stat-label">Total Spent</span>
+                </div>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="maint-filters">
+                <button class="maint-filter active" data-pstatus="all"><i class="ri-list-check"></i> All</button>
+                <button class="maint-filter" data-pstatus="planning"><i class="ri-file-list-line"></i> Planning</button>
+                <button class="maint-filter" data-pstatus="in-progress"><i class="ri-play-circle-line"></i> In Progress</button>
+                <button class="maint-filter" data-pstatus="completed"><i class="ri-checkbox-circle-line"></i> Completed</button>
+            </div>
+
+            <!-- Projects List -->
+            <div id="proj-container" class="maint-tasks-container">
+                <div class="maint-empty-state" id="proj-empty">
+                    <i class="ri-hammer-line"></i>
+                    <h3>No projects yet</h3>
+                    <p>Click <strong>"Add Project"</strong> to start tracking a home improvement project.</p>
+                </div>
+            </div>
+
+            <!-- Add Project Modal -->
+            <div id="proj-add-modal" class="modal-overlay hidden">
+                <div class="modal-content property-setup-modal">
+                    <button id="close-proj-modal" class="close-modal-btn"><i class="ri-close-line"></i></button>
+                    <div class="property-setup">
+                        <div class="property-setup-header">
+                            <i class="ri-hammer-line" style="font-size:2rem;color:var(--primary)"></i>
+                            <h2 id="proj-modal-title">Add Project</h2>
+                        </div>
+                        <div class="property-form">
+                            <div class="property-field">
+                                <label><i class="ri-text"></i> Project Name</label>
+                                <input type="text" id="proj-name" placeholder="e.g. Kitchen Remodel" />
+                            </div>
+                            <div class="property-field">
+                                <label><i class="ri-file-text-line"></i> Description</label>
+                                <input type="text" id="proj-desc" placeholder="Brief description of the project" />
+                            </div>
+                            <div class="property-counters">
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-price-tag-3-line"></i> Category</label>
+                                    <select id="proj-cat" class="styled-select" style="width:100%">
+                                        <option>Kitchen</option><option>Bathroom</option>
+                                        <option>Bedroom</option><option>Living Room</option>
+                                        <option>Exterior</option><option>Landscaping</option>
+                                        <option>HVAC</option><option>Electrical</option>
+                                        <option>Plumbing</option><option>Other</option>
+                                    </select>
+                                </div>
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-flag-line"></i> Status</label>
+                                    <select id="proj-status" class="styled-select" style="width:100%">
+                                        <option value="planning">Planning</option>
+                                        <option value="in-progress">In Progress</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="on-hold">On Hold</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="property-counters">
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-money-dollar-circle-line"></i> Budget ($)</label>
+                                    <input type="number" id="proj-budget-input" placeholder="5000" min="0" class="styled-select" style="width:100%" />
+                                </div>
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-coins-line"></i> Spent So Far ($)</label>
+                                    <input type="number" id="proj-spent-input" placeholder="0" min="0" class="styled-select" style="width:100%" />
+                                </div>
+                            </div>
+                            <div class="property-counters">
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-calendar-line"></i> Start Date</label>
+                                    <input type="date" id="proj-start" class="styled-select" style="width:100%" />
+                                </div>
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-calendar-check-line"></i> Target End</label>
+                                    <input type="date" id="proj-end" class="styled-select" style="width:100%" />
+                                </div>
+                            </div>
+                            <button id="proj-save-btn" class="auth-btn" style="width:100%;margin-top:1rem">
+                                <i class="ri-check-line"></i> Save Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── TAB: Finances ── -->
+        <section id="tab-finances" class="tab-content">
+            <div class="maint-header">
+                <div>
+                    <h1 class="dashboard-title"><i class="ri-money-dollar-circle-line" style="color:var(--primary);margin-right:0.5rem"></i>Home Finances</h1>
+                    <p class="dashboard-subtitle">Mortgage, equity, and expense tracking for your property</p>
+                </div>
+                <div class="dashboard-actions">
+                    <button id="fin-add-btn" class="dash-action-btn primary"><i class="ri-add-line"></i> Add Expense</button>
+                </div>
+            </div>
+
+            <!-- Finance Overview Cards -->
+            <div class="maint-stats" style="grid-template-columns:repeat(3,1fr)">
+                <div class="maint-stat">
+                    <span class="maint-stat-value" id="fin-home-value">—</span>
+                    <span class="maint-stat-label">Home Value</span>
+                </div>
+                <div class="maint-stat">
+                    <span class="maint-stat-value" id="fin-mortgage" style="color:var(--danger)">—</span>
+                    <span class="maint-stat-label">Mortgage Balance</span>
+                </div>
+                <div class="maint-stat">
+                    <span class="maint-stat-value" id="fin-equity" style="color:var(--success)">—</span>
+                    <span class="maint-stat-label">Est. Equity</span>
+                </div>
+            </div>
+
+            <!-- Home Value Setup -->
+            <div class="fin-setup-card" id="fin-setup">
+                <i class="ri-home-gear-line" style="font-size:2rem;color:var(--primary);display:block;margin-bottom:0.5rem"></i>
+                <h3>Set Up Your Property Finances</h3>
+                <p style="color:var(--text-muted);margin-bottom:1.5rem">Enter your property value and mortgage details to track equity.</p>
+                <div class="property-counters" style="max-width:600px;margin:0 auto">
+                    <div class="property-field" style="margin:0">
+                        <label>Current Home Value ($)</label>
+                        <input type="number" id="fin-value-input" placeholder="450000" class="styled-select" style="width:100%" />
+                    </div>
+                    <div class="property-field" style="margin:0">
+                        <label>Mortgage Balance ($)</label>
+                        <input type="number" id="fin-mortgage-input" placeholder="320000" class="styled-select" style="width:100%" />
+                    </div>
+                </div>
+                <button id="fin-save-setup" class="dash-action-btn primary" style="margin-top:1rem"><i class="ri-save-line"></i> Save Property Finances</button>
+            </div>
+
+            <!-- Expense List -->
+            <div style="margin-top:1.5rem">
+                <h2 class="section-heading"><i class="ri-receipt-line"></i> Expense Log</h2>
+                <div id="fin-expenses-container" class="maint-tasks-container">
+                    <div class="maint-empty-state" id="fin-empty">
+                        <i class="ri-receipt-line"></i>
+                        <h3>No expenses logged</h3>
+                        <p>Click <strong>"Add Expense"</strong> to track home-related spending.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Expense Modal -->
+            <div id="fin-add-modal" class="modal-overlay hidden">
+                <div class="modal-content property-setup-modal">
+                    <button id="close-fin-modal" class="close-modal-btn"><i class="ri-close-line"></i></button>
+                    <div class="property-setup">
+                        <div class="property-setup-header">
+                            <i class="ri-receipt-line" style="font-size:2rem;color:var(--primary)"></i>
+                            <h2>Add Expense</h2>
+                        </div>
+                        <div class="property-form">
+                            <div class="property-field">
+                                <label><i class="ri-text"></i> Description</label>
+                                <input type="text" id="fin-exp-desc" placeholder="e.g. New Water Heater" />
+                            </div>
+                            <div class="property-counters">
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-price-tag-3-line"></i> Category</label>
+                                    <select id="fin-exp-cat" class="styled-select" style="width:100%">
+                                        <option>Repair</option><option>Improvement</option>
+                                        <option>Utility</option><option>Insurance</option>
+                                        <option>Tax</option><option>Maintenance</option><option>Other</option>
+                                    </select>
+                                </div>
+                                <div class="property-field" style="margin:0">
+                                    <label><i class="ri-money-dollar-circle-line"></i> Amount ($)</label>
+                                    <input type="number" id="fin-exp-amount" placeholder="250" min="0" class="styled-select" style="width:100%" />
+                                </div>
+                            </div>
+                            <div class="property-field">
+                                <label><i class="ri-calendar-line"></i> Date</label>
+                                <input type="date" id="fin-exp-date" class="styled-select" style="width:100%" />
+                            </div>
+                            <button id="fin-save-expense" class="auth-btn" style="width:100%;margin-top:1rem">
+                                <i class="ri-check-line"></i> Save Expense
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── TAB: AI Assistant ── -->
+        <section id="tab-ai-assistant" class="tab-content">
+            <div class="maint-header">
+                <div>
+                    <h1 class="dashboard-title"><i class="ri-robot-2-line" style="color:var(--primary);margin-right:0.5rem"></i>AI Home Assistant</h1>
+                    <p class="dashboard-subtitle">Ask Gemini anything about your home — maintenance, value, insurance, improvements</p>
+                </div>
+                <button id="ai-clear-btn" class="dash-action-btn secondary"><i class="ri-delete-bin-line"></i> Clear Chat</button>
+            </div>
+
+            <!-- Quick Prompts -->
+            <div class="ai-quick-prompts">
+                <button class="ai-prompt-chip" data-prompt="What home maintenance tasks should I do this month?"><i class="ri-tools-line"></i> Monthly Tasks</button>
+                <button class="ai-prompt-chip" data-prompt="How can I increase my home's value before selling?"><i class="ri-arrow-up-circle-line"></i> Boost Value</button>
+                <button class="ai-prompt-chip" data-prompt="What home improvements give the best return on investment?"><i class="ri-funds-line"></i> Best ROI</button>
+                <button class="ai-prompt-chip" data-prompt="How do I winterize my home?"><i class="ri-snowy-line"></i> Winterize</button>
+                <button class="ai-prompt-chip" data-prompt="What should my home insurance cover?"><i class="ri-shield-check-line"></i> Insurance Tips</button>
+                <button class="ai-prompt-chip" data-prompt="How do I detect and prevent water damage?"><i class="ri-drop-line"></i> Water Damage</button>
+            </div>
+
+            <!-- Chat Window -->
+            <div id="ai-chat-window" class="ai-chat-window">
+                <div class="ai-message ai-message-bot">
+                    <div class="ai-avatar"><i class="ri-robot-2-line"></i></div>
+                    <div class="ai-bubble">
+                        <p>👋 Hi! I'm your Holos AI Home Assistant powered by Gemini. I can help you with:</p>
+                        <ul style="margin:0.5rem 0 0 1rem;color:var(--text-muted)">
+                            <li>Seasonal maintenance schedules</li>
+                            <li>Home improvement ROI advice</li>
+                            <li>Insurance and warranty guidance</li>
+                            <li>Energy efficiency tips</li>
+                        </ul>
+                        <p style="margin-top:0.5rem">What would you like to know about your home?</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="ai-input-area">
+                <input type="text" id="ai-chat-input" class="ai-chat-input" placeholder="Ask anything about your home..." />
+                <button id="ai-send-btn" class="ai-send-btn"><i class="ri-send-plane-fill"></i></button>
+            </div>
+        </section>
+
     </main>
+    </div><!-- /app-shell -->
 
     <!-- Modals -->
     <div id="modal-overlay" class="modal-overlay hidden">
         <div class="modal-content">
             <button id="close-modal-btn" class="close-modal-btn"><i class="ri-close-line"></i></button>
             <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Property Setup Modal -->
+    <div id="property-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-content property-setup-modal">
+            <button id="close-property-modal" class="close-modal-btn"><i class="ri-close-line"></i></button>
+            <div class="property-setup">
+                <div class="property-setup-header">
+                    <i class="ri-home-gear-line" style="font-size: 2rem; color: var(--primary);"></i>
+                    <h2>Setup New Property</h2>
+                    <p style="color: var(--text-muted); margin: 0;">Enter your property details to auto-generate rooms</p>
+                </div>
+
+                <div class="property-form">
+                    <div class="property-field">
+                        <label for="property-name"><i class="ri-home-smile-2-line"></i> Property Name</label>
+                        <input type="text" id="property-name" placeholder="e.g. My House, Vacation Cabin" />
+                    </div>
+
+                    <div class="property-field">
+                        <label for="property-address"><i class="ri-map-pin-line"></i> Address</label>
+                        <input type="text" id="property-address" placeholder="123 Main St, City, State ZIP" />
+                    </div>
+
+                    <div class="property-counters">
+                        <div class="counter-group">
+                            <label><i class="ri-hotel-bed-line"></i> Bedrooms</label>
+                            <div class="counter-controls">
+                                <button class="counter-btn" data-target="bedroom-count" data-dir="-1">−</button>
+                                <span id="bedroom-count" class="counter-value">3</span>
+                                <button class="counter-btn" data-target="bedroom-count" data-dir="1">+</button>
+                            </div>
+                        </div>
+                        <div class="counter-group">
+                            <label><i class="ri-drop-line"></i> Bathrooms</label>
+                            <div class="counter-controls">
+                                <button class="counter-btn" data-target="bathroom-count" data-dir="-1">−</button>
+                                <span id="bathroom-count" class="counter-value">2</span>
+                                <button class="counter-btn" data-target="bathroom-count" data-dir="1">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="property-field">
+                        <label><i class="ri-layout-masonry-line"></i> Additional Rooms</label>
+                        <div class="room-toggles">
+                            <label class="room-toggle"><input type="checkbox" value="Living Room" checked> Living Room</label>
+                            <label class="room-toggle"><input type="checkbox" value="Kitchen" checked> Kitchen</label>
+                            <label class="room-toggle"><input type="checkbox" value="Dining Room" checked> Dining Room</label>
+                            <label class="room-toggle"><input type="checkbox" value="Home Office"> Home Office</label>
+                            <label class="room-toggle"><input type="checkbox" value="Garage" checked> Garage</label>
+                            <label class="room-toggle"><input type="checkbox" value="Basement"> Basement</label>
+                            <label class="room-toggle"><input type="checkbox" value="Attic"> Attic</label>
+                            <label class="room-toggle"><input type="checkbox" value="Laundry Room" checked> Laundry Room</label>
+                            <label class="room-toggle"><input type="checkbox" value="Patio/Deck"> Patio/Deck</label>
+                            <label class="room-toggle"><input type="checkbox" value="Closet"> Walk-in Closet</label>
+                            <label class="room-toggle"><input type="checkbox" value="Pantry"> Pantry</label>
+                            <label class="room-toggle"><input type="checkbox" value="Mudroom"> Mudroom</label>
+                        </div>
+                    </div>
+
+                    <div class="property-preview" id="property-preview">
+                        <label><i class="ri-list-check-3"></i> Room Preview</label>
+                        <div id="room-preview-list" class="room-preview-list"></div>
+                    </div>
+
+                    <button id="save-property-btn" class="auth-btn" style="width:100%; margin-top: 1rem;">
+                        <i class="ri-check-line"></i> Create Property & Set Rooms
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

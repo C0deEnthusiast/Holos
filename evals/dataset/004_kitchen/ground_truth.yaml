@@ -1,0 +1,72 @@
+scene_id: "004"
+room_type: "kitchen"
+scene_description: "Modern kitchen, stainless steel appliances visible, bright overhead lighting"
+price_tier: "mid_range"
+labeled_by: "team"
+labeled_at: "2026-04-19"
+
+items:
+  - item_name: "Stainless Steel French Door Refrigerator"
+    category: "appliance"
+    subcategory: "refrigerator"
+    brand: "Samsung"
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 159900
+    retail_tolerance_pct: 0.30
+    bounding_box: [50, 600, 900, 950]
+    flags: ["high_value"]
+    detectable: true
+    notes: "Samsung logo visible on front, French door style, 36 inches wide"
+
+  - item_name: "KitchenAid Stand Mixer"
+    category: "appliance"
+    subcategory: "small appliance"
+    brand: "KitchenAid"
+    model: "Artisan"
+    condition: "excellent"
+    retail_midpoint_cents: 44900
+    retail_tolerance_pct: 0.25
+    bounding_box: [300, 100, 600, 350]
+    flags: ["high_value"]
+    detectable: true
+    notes: "Red Artisan model, very distinctive silhouette and branding"
+
+  - item_name: "Stainless Steel Dishwasher"
+    category: "appliance"
+    subcategory: "dishwasher"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 79900
+    retail_tolerance_pct: 0.35
+    bounding_box: [400, 400, 900, 600]
+    flags: []
+    detectable: true
+    notes: "Panel-integrated, stainless front, partial view"
+
+  - item_name: "Nespresso Vertuo Coffee Machine"
+    category: "appliance"
+    subcategory: "small appliance"
+    brand: "Nespresso"
+    model: "Vertuo"
+    condition: "excellent"
+    retail_midpoint_cents: 19900
+    retail_tolerance_pct: 0.35
+    bounding_box: [280, 350, 530, 520]
+    flags: []
+    detectable: true
+    notes: "Distinctive dome lid, Nespresso branding visible"
+
+  - item_name: "All-Clad Stainless Steel Pot Set"
+    category: "kitchenware"
+    subcategory: "cookware"
+    brand: "All-Clad"
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 39900
+    retail_tolerance_pct: 0.40
+    bounding_box: [500, 50, 800, 400]
+    flags: ["high_value"]
+    detectable: true
+    notes: "All-Clad D3 style visible from rivets and handle design"

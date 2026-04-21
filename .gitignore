@@ -29,7 +29,11 @@ Thumbs.db
 
 # Misc
 *.log
+*.bac
 error.txt
 api_test_out.txt
 test_results.json
+test_image.jpg
+test_room.jpg
+test_tv.jpg
 static/thumbnails/

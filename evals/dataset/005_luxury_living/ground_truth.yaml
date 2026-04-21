@@ -1,0 +1,72 @@
+scene_id: "005"
+room_type: "living_room"
+scene_description: "Upscale living room with designer furniture, art, musical instrument — medium lighting"
+price_tier: "luxury"
+labeled_by: "team"
+labeled_at: "2026-04-19"
+
+items:
+  - item_name: "Grand Piano Baby Grand"
+    category: "instruments"
+    subcategory: "piano"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 800000
+    retail_tolerance_pct: 0.40
+    bounding_box: [200, 500, 850, 950]
+    flags: ["high_value", "requires_appraisal"]
+    detectable: true
+    notes: "Black lacquer finish, unmistakable silhouette"
+
+  - item_name: "Abstract Oil Painting Large Canvas"
+    category: "art"
+    subcategory: "painting"
+    brand: null
+    model: null
+    condition: "excellent"
+    retail_midpoint_cents: 250000
+    retail_tolerance_pct: 0.70
+    bounding_box: [50, 50, 600, 450]
+    flags: ["high_value", "requires_appraisal"]
+    detectable: true
+    notes: "Original artwork, value highly uncertain without provenance"
+
+  - item_name: "Restoration Hardware Sofa Cloud"
+    category: "furniture"
+    subcategory: "seating"
+    brand: "Restoration Hardware"
+    model: "Cloud"
+    condition: "excellent"
+    retail_midpoint_cents: 599900
+    retail_tolerance_pct: 0.30
+    bounding_box: [500, 100, 950, 600]
+    flags: ["high_value", "requires_appraisal"]
+    detectable: true
+    notes: "RH Cloud collection, cream boucle fabric, distinctive deep cushions"
+
+  - item_name: "Persian Area Rug Handmade 9x12"
+    category: "decor"
+    subcategory: "rugs"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 350000
+    retail_tolerance_pct: 0.60
+    bounding_box: [450, 50, 950, 900]
+    flags: ["high_value", "requires_appraisal"]
+    detectable: true
+    notes: "Hand-knotted Persian, intricate medallion pattern, age uncertain"
+
+  - item_name: "Chelsea House Table Lamp Pair"
+    category: "decor"
+    subcategory: "lighting"
+    brand: null
+    model: null
+    condition: "excellent"
+    retail_midpoint_cents: 79900
+    retail_tolerance_pct: 0.45
+    bounding_box: [100, 500, 450, 700]
+    flags: []
+    detectable: true
+    notes: "Designer table lamps, crystal base, white shade"

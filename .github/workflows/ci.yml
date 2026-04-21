@@ -1,0 +1,135 @@
+name: Holos CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # ─────────────────────────────────────────────────────────
+  # Job 1: Lint
+  # ─────────────────────────────────────────────────────────
+  lint:
+    name: Lint (ruff + mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install ruff mypy pydantic structlog
+      - run: ruff check .
+      - run: mypy . --ignore-missing-imports
+
+  # ─────────────────────────────────────────────────────────
+  # Job 2: Unit + Tenant Isolation Tests
+  # ─────────────────────────────────────────────────────────
+  test:
+    name: Tests (pytest)
+    runs-on: ubuntu-latest
+    needs: lint
+    env:
+      FLASK_DEBUG: "false"
+      ENV: "test"
+      SECRET_KEY: "ci-test-secret-key-32-chars-long!"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      ENABLE_TEST_ACCOUNTS: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pytest tests/ -v --tb=short -x
+        # -x = stop on first failure (fail fast)
+
+  # ─────────────────────────────────────────────────────────
+  # Job 3: Python Eval Harness (§8.6 metrics)
+  # Triggers when prompts or scanner change
+  # ─────────────────────────────────────────────────────────
+  eval-harness:
+    name: Eval (§8.6 metrics)
+    runs-on: ubuntu-latest
+    needs: test
+    # Only run on prompt/scanner changes (expensive — calls Gemini API)
+    if: |
+      github.event_name == 'pull_request' && (
+        contains(join(github.event.pull_request.changed_files, ','), 'backend/prompts/') ||
+        contains(join(github.event.pull_request.changed_files, ','), 'scanner.py') ||
+        contains(join(github.event.pull_request.changed_files, ','), 'schemas.py')
+      )
+    env:
+      ENV: "test"
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download eval images from LFS / artifact store
+        # Images are stored in Git LFS or a private artifact bucket
+        # If using LFS: `git lfs pull --include "evals/dataset/**"`
+        run: |
+          if command -v git-lfs &> /dev/null; then
+            git lfs pull --include "evals/dataset/**"
+          else
+            echo "Git LFS not available — eval will skip scenes with missing images"
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - run: pip install -r requirements.txt pyyaml
+
+      - name: Run eval harness
+        run: |
+          python evals/run_eval.py \
+            --baseline evals/reports/baseline.json \
+            --output evals/reports/ci_run_${{ github.run_number }}.json
+        # Exit 1 = threshold violation
+        # Exit 2 = regression vs baseline (unless ALLOW_EVAL_REGRESSION is set)
+
+      - name: Upload eval report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-report-${{ github.run_number }}
+          path: evals/reports/ci_run_${{ github.run_number }}.json
+
+  # ─────────────────────────────────────────────────────────
+  # Job 4: promptfoo schema conformance
+  # Always runs (cheap — schema tests use fixture images, no big API cost)
+  # ─────────────────────────────────────────────────────────
+  eval-promptfoo:
+    name: promptfoo schema conformance
+    runs-on: ubuntu-latest
+    needs: test
+    if: |
+      contains(join(github.event.head_commit.modified, ','), 'backend/prompts/') ||
+      github.event_name == 'pull_request'
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: |
+          npx promptfoo@latest eval \
+            --config promptfoo.yaml \
+            --output evals/reports/promptfoo_ci_${{ github.run_number }}.json \
+            --no-cache
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: promptfoo-report-${{ github.run_number }}
+          path: evals/reports/promptfoo_ci_${{ github.run_number }}.json

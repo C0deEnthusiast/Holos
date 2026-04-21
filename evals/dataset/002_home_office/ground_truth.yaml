@@ -1,0 +1,72 @@
+scene_id: "002"
+room_type: "home_office"
+scene_description: "Modern home office, desk setup with monitors, good lighting"
+price_tier: "mid_range"
+labeled_by: "team"
+labeled_at: "2026-04-19"
+
+items:
+  - item_name: "Apple MacBook Pro 14-inch"
+    category: "electronics"
+    subcategory: "laptop"
+    brand: "Apple"
+    model: "MacBook Pro 14"
+    condition: "good"
+    retail_midpoint_cents: 199900
+    retail_tolerance_pct: 0.25
+    bounding_box: [300, 200, 650, 700]
+    flags: ["high_value", "serialized"]
+    detectable: true
+    notes: "Apple logo glowing, silver finish, 14-inch form factor"
+
+  - item_name: "Dell 27-inch Monitor"
+    category: "electronics"
+    subcategory: "monitor"
+    brand: "Dell"
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 29900
+    retail_tolerance_pct: 0.35
+    bounding_box: [50, 300, 500, 750]
+    flags: []
+    detectable: true
+    notes: "Dell logo on bezel, 27-inch estimated from desk scale"
+
+  - item_name: "Herman Miller Aeron Office Chair"
+    category: "furniture"
+    subcategory: "office"
+    brand: "Herman Miller"
+    model: "Aeron"
+    condition: "good"
+    retail_midpoint_cents: 149900
+    retail_tolerance_pct: 0.25
+    bounding_box: [400, 600, 950, 950]
+    flags: ["high_value", "requires_appraisal"]
+    detectable: true
+    notes: "Distinctive mesh back and lumbar paddle, high-confidence ID"
+
+  - item_name: "Standing Desk Electric Height-Adjustable"
+    category: "furniture"
+    subcategory: "office"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 59900
+    retail_tolerance_pct: 0.40
+    bounding_box: [200, 100, 750, 900]
+    flags: []
+    detectable: true
+    notes: "White surface, electric motor panel visible on leg"
+
+  - item_name: "Sonos One Speaker"
+    category: "electronics"
+    subcategory: "audio"
+    brand: "Sonos"
+    model: "One"
+    condition: "excellent"
+    retail_midpoint_cents: 21900
+    retail_tolerance_pct: 0.30
+    bounding_box: [200, 750, 500, 950]
+    flags: []
+    detectable: true
+    notes: "Cylindrical white speaker, Sonos branding visible"

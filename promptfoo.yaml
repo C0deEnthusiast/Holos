@@ -1,0 +1,140 @@
+# Holos Vision Classifier — promptfoo Eval Config
+# §8.6: Run via: npx promptfoo@latest eval
+# CI triggers on: backend/prompts/** and scanner.py changes
+
+description: "Holos vision classifier accuracy eval"
+prompts:
+  - id: vision_classify_v1
+    raw: file://backend/prompts/vision_classify.v1.md
+
+providers:
+  - id: google:gemini-2.5-flash-preview-04-17
+    config:
+      temperature: 0
+      topK: 1
+      topP: 0.1
+      response_mime_type: application/json
+
+  # Challenger model — swap in for A/B comparison
+  # - id: google:gemini-2.5-pro-preview-03-25
+  #   config:
+  #     temperature: 0
+
+tests:
+  # ── Single item ID tests ──────────────────────────────────────
+  - description: "MacBook Pro — brand detected"
+    vars:
+      image: file://evals/fixtures/macbook_crop.jpg
+    assert:
+      - type: json
+        path: "[0].brand"
+        value: Apple
+        transform: output => JSON.parse(output)
+
+  - description: "IKEA KALLAX — category correct"
+    vars:
+      image: file://evals/fixtures/kallax_crop.jpg
+    assert:
+      - type: json
+        path: "[0].category"
+        value: furniture
+        transform: output => JSON.parse(output)
+
+  - description: "KitchenAid mixer — brand + category"
+    vars:
+      image: file://evals/fixtures/kitchenaid_crop.jpg
+    assert:
+      - type: json
+        path: "[0].brand"
+        value: KitchenAid
+        transform: output => JSON.parse(output)
+      - type: json
+        path: "[0].category"
+        value: appliance
+        transform: output => JSON.parse(output)
+
+  # ── Schema conformance ────────────────────────────────────────
+  - description: "Response is valid JSON array"
+    vars:
+      image: file://evals/fixtures/living_room_sample.jpg
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const items = JSON.parse(output);
+          return Array.isArray(items) && items.length > 0;
+
+  - description: "All items have required fields"
+    vars:
+      image: file://evals/fixtures/living_room_sample.jpg
+    assert:
+      - type: javascript
+        value: |
+          const items = JSON.parse(output);
+          const required = ['item_name','category','condition','identification_confidence',
+            'value_retail_replacement_low_cents','value_retail_replacement_high_cents',
+            'pricing_rationale','bounding_box'];
+          return items.every(item => required.every(f => item[f] !== undefined));
+
+  - description: "Confidence scores are 0.0-1.0 floats"
+    vars:
+      image: file://evals/fixtures/living_room_sample.jpg
+    assert:
+      - type: javascript
+        value: |
+          const items = JSON.parse(output);
+          return items.every(i =>
+            i.identification_confidence >= 0 &&
+            i.identification_confidence <= 1 &&
+            i.condition_confidence >= 0 &&
+            i.condition_confidence <= 1
+          );
+
+  - description: "Retail high >= retail low"
+    vars:
+      image: file://evals/fixtures/living_room_sample.jpg
+    assert:
+      - type: javascript
+        value: |
+          const items = JSON.parse(output);
+          return items.every(i =>
+            i.value_retail_replacement_high_cents >= i.value_retail_replacement_low_cents
+          );
+
+  - description: "Categories from allowed enum"
+    vars:
+      image: file://evals/fixtures/living_room_sample.jpg
+    assert:
+      - type: javascript
+        value: |
+          const ALLOWED = ['electronics','furniture','appliance','jewelry','art','clothing',
+            'kitchenware','tools','decor','media','instruments','sports','collectible','other'];
+          const items = JSON.parse(output);
+          return items.every(i => ALLOWED.includes(i.category));
+
+  - description: "No markdown fences in response"
+    vars:
+      image: file://evals/fixtures/living_room_sample.jpg
+    assert:
+      - type: not-contains
+        value: "```"
+
+  - description: "Bounding box has 4 integers in 0-1000"
+    vars:
+      image: file://evals/fixtures/living_room_sample.jpg
+    assert:
+      - type: javascript
+        value: |
+          const items = JSON.parse(output);
+          return items.every(i =>
+            Array.isArray(i.bounding_box) &&
+            i.bounding_box.length === 4 &&
+            i.bounding_box.every(v => Number.isInteger(v) && v >= 0 && v <= 1000)
+          );
+
+defaultTest:
+  # Any single test taking > 30s is a timeout failure
+  options:
+    timeoutMs: 30000
+
+outputPath: evals/reports/promptfoo_latest.json

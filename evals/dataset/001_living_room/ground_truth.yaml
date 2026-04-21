@@ -1,0 +1,72 @@
+scene_id: "001"
+room_type: "living_room"
+scene_description: "Mid-century modern living room, natural daylight, good condition items"
+price_tier: "mid_range"
+labeled_by: "team"
+labeled_at: "2026-04-19"
+
+items:
+  - item_name: "IKEA KALLAX Shelf Unit 4x2"
+    category: "furniture"
+    subcategory: "storage"
+    brand: "IKEA"
+    model: "KALLAX"
+    condition: "good"
+    retail_midpoint_cents: 19900
+    retail_tolerance_pct: 0.30
+    bounding_box: [100, 50, 700, 350]
+    flags: []
+    detectable: true
+    notes: "White 4x2 grid, very common, easy ID"
+
+  - item_name: "65-inch Flat Screen TV"
+    category: "electronics"
+    subcategory: "television"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 69900
+    retail_tolerance_pct: 0.40
+    bounding_box: [50, 400, 500, 950]
+    flags: ["high_value"]
+    detectable: true
+    notes: "Brand not visible from this angle, size estimable from wall"
+
+  - item_name: "Mid-Century Sofa 3-Seat"
+    category: "furniture"
+    subcategory: "seating"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 89900
+    retail_tolerance_pct: 0.35
+    bounding_box: [550, 200, 900, 850]
+    flags: []
+    detectable: true
+    notes: "Walnut legs, fabric upholstery, mid-century style"
+
+  - item_name: "Coffee Table Solid Wood"
+    category: "furniture"
+    subcategory: "tables"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 39900
+    retail_tolerance_pct: 0.35
+    bounding_box: [620, 350, 850, 700]
+    flags: []
+    detectable: true
+    notes: "Rectangular, dark walnut finish"
+
+  - item_name: "Woven Area Rug 8x10"
+    category: "decor"
+    subcategory: "rugs"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 29900
+    retail_tolerance_pct: 0.40
+    bounding_box: [500, 150, 950, 800]
+    flags: []
+    detectable: true
+    notes: "Neutral tones, geometric pattern, partially under furniture"

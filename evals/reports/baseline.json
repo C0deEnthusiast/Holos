@@ -1,0 +1,38 @@
+{
+  "_comment": "Holos Eval Baseline — Phase 0 stub. Replace with real numbers after first live run.",
+  "eval_version": "1",
+  "run_date": "2026-04-19",
+  "commit": "phase-0",
+  "model": "gemini-2.5-flash-preview-04-17",
+  "prompt_version": "v1",
+  "scene_count": 0,
+  "aggregate": {
+    "scene_count": 0,
+    "total_gt_items": 0,
+    "total_pred_items": 0,
+    "total_matched": 0,
+    "item_recall": null,
+    "item_precision": null,
+    "category_accuracy": null,
+    "brand_accuracy": null,
+    "price_containment": null,
+    "condition_kappa": null,
+    "iou_50_rate": null,
+    "ece": null,
+    "avg_latency_s": null
+  },
+  "thresholds": {
+    "item_recall": 0.85,
+    "item_precision": 0.80,
+    "price_containment": 0.75,
+    "ece": 0.10
+  },
+  "violations": [],
+  "scenes": [],
+  "_next_steps": [
+    "1. Add real images to evals/dataset/001-005 directories as image.jpg",
+    "2. Run: python evals/run_eval.py --output evals/reports/baseline.json",
+    "3. Commit the populated baseline.json",
+    "4. Future CI runs compare against this baseline (--baseline flag)"
+  ]
+}

@@ -1,0 +1,72 @@
+scene_id: "003"
+room_type: "bedroom"
+scene_description: "Master bedroom, Queen bed with nightstands, medium lighting"
+price_tier: "mid_range"
+labeled_by: "team"
+labeled_at: "2026-04-19"
+
+items:
+  - item_name: "Queen Size Platform Bed Frame"
+    category: "furniture"
+    subcategory: "beds"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 79900
+    retail_tolerance_pct: 0.35
+    bounding_box: [200, 100, 850, 850]
+    flags: []
+    detectable: true
+    notes: "Upholstered headboard, platform style, Queen size"
+
+  - item_name: "Nightstand Wooden with Drawer"
+    category: "furniture"
+    subcategory: "storage"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 14900
+    retail_tolerance_pct: 0.40
+    bounding_box: [300, 50, 650, 200]
+    flags: []
+    detectable: true
+    notes: "Single drawer, wood veneer finish"
+
+  - item_name: "Nightstand Wooden with Drawer"
+    category: "furniture"
+    subcategory: "storage"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 14900
+    retail_tolerance_pct: 0.40
+    bounding_box: [300, 800, 650, 950]
+    flags: []
+    detectable: true
+    notes: "Matching to opposite nightstand — quantity 2 in set"
+
+  - item_name: "Dresser 6-Drawer"
+    category: "furniture"
+    subcategory: "storage"
+    brand: null
+    model: null
+    condition: "fair"
+    retail_midpoint_cents: 49900
+    retail_tolerance_pct: 0.40
+    bounding_box: [50, 0, 700, 250]
+    flags: []
+    detectable: true
+    notes: "Some wear visible on drawer faces, wood finish"
+
+  - item_name: "Table Lamp Ceramic Base"
+    category: "decor"
+    subcategory: "lighting"
+    brand: null
+    model: null
+    condition: "good"
+    retail_midpoint_cents: 9900
+    retail_tolerance_pct: 0.50
+    bounding_box: [100, 50, 350, 175]
+    flags: []
+    detectable: true
+    notes: "White ceramic base, linen shade"

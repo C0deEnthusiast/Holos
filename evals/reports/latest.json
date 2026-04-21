@@ -1,0 +1,46 @@
+{
+  "eval_version": "1",
+  "scene_count": 5,
+  "aggregate": {
+    "error": "no valid results"
+  },
+  "scenes": [
+    {
+      "scene_id": "001",
+      "skipped": true,
+      "skip_reason": "dry_run",
+      "gt_count": 5
+    },
+    {
+      "scene_id": "002",
+      "skipped": true,
+      "skip_reason": "dry_run",
+      "gt_count": 5
+    },
+    {
+      "scene_id": "003",
+      "skipped": true,
+      "skip_reason": "dry_run",
+      "gt_count": 5
+    },
+    {
+      "scene_id": "004",
+      "skipped": true,
+      "skip_reason": "dry_run",
+      "gt_count": 5
+    },
+    {
+      "scene_id": "005",
+      "skipped": true,
+      "skip_reason": "dry_run",
+      "gt_count": 5
+    }
+  ],
+  "thresholds": {
+    "item_recall": 0.85,
+    "item_precision": 0.8,
+    "price_containment": 0.75,
+    "ece": 0.1
+  },
+  "violations": []
+}
