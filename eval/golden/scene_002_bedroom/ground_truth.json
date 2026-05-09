@@ -1,0 +1,39 @@
+{
+  "scene_id": "scene_002_bedroom",
+  "description": "Standard bedroom with bed, nightstands, dresser, and lamp",
+  "image_file": "image.jpg",
+  "items": [
+    {
+      "name": "Bed",
+      "aliases": ["queen bed", "king bed", "bed frame", "platform bed", "queen size bed"],
+      "category": "Furniture > Beds",
+      "retail_usd": 900,
+      "price_tolerance": 0.40,
+      "min_confidence": 60
+    },
+    {
+      "name": "Nightstand",
+      "aliases": ["night table", "bedside table", "side table", "end table"],
+      "category": "Furniture > Tables",
+      "retail_usd": 150,
+      "price_tolerance": 0.50,
+      "min_confidence": 40
+    },
+    {
+      "name": "Dresser",
+      "aliases": ["chest of drawers", "bureau", "chest", "wardrobe", "drawer unit"],
+      "category": "Furniture > Storage",
+      "retail_usd": 400,
+      "price_tolerance": 0.40,
+      "min_confidence": 50
+    },
+    {
+      "name": "Table Lamp",
+      "aliases": ["lamp", "bedside lamp", "desk lamp", "reading lamp"],
+      "category": "Decor > Lighting",
+      "retail_usd": 80,
+      "price_tolerance": 0.50,
+      "min_confidence": 40
+    }
+  ]
+}

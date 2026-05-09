@@ -1,0 +1,47 @@
+{
+  "scene_id": "scene_001_living_room",
+  "description": "Modern mid-range living room with sofa, coffee table, TV, and decor",
+  "image_file": "image.jpg",
+  "items": [
+    {
+      "name": "Sofa",
+      "aliases": ["couch", "sectional", "loveseat", "three-seat sofa", "three seat sofa"],
+      "category": "Furniture > Seating",
+      "retail_usd": 800,
+      "price_tolerance": 0.40,
+      "min_confidence": 50
+    },
+    {
+      "name": "Coffee Table",
+      "aliases": ["coffee table", "center table", "cocktail table"],
+      "category": "Furniture > Tables",
+      "retail_usd": 250,
+      "price_tolerance": 0.40,
+      "min_confidence": 50
+    },
+    {
+      "name": "Television",
+      "aliases": ["tv", "flat screen", "monitor", "smart tv", "led tv", "oled tv"],
+      "category": "Electronics > Entertainment",
+      "retail_usd": 700,
+      "price_tolerance": 0.45,
+      "min_confidence": 60
+    },
+    {
+      "name": "Floor Lamp",
+      "aliases": ["lamp", "floor light", "standing lamp"],
+      "category": "Decor > Lighting",
+      "retail_usd": 150,
+      "price_tolerance": 0.50,
+      "min_confidence": 40
+    },
+    {
+      "name": "Area Rug",
+      "aliases": ["rug", "carpet", "floor rug"],
+      "category": "Decor > Rugs",
+      "retail_usd": 300,
+      "price_tolerance": 0.45,
+      "min_confidence": 40
+    }
+  ]
+}

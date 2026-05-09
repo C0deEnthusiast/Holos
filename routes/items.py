@@ -1,7 +1,9 @@
 """
 Item Routes
 Handles saving, retrieving, updating, archiving items,
-and generating AI resale listings.
+and generating AI resale listings and estate reports.
+
+Agent 0B: all logging via structlog — no print() statements.
 """
 import json
 import re
@@ -12,6 +14,9 @@ from flask import Blueprint, request, jsonify
 
 import scanner
 from routes.auth import get_current_user_id
+from observability import get_logger
+
+log = get_logger("items", agent_id="0B")
 
 items_bp = Blueprint("items", __name__, url_prefix="/api")
 
@@ -33,7 +38,6 @@ def save_item():
     supabase = get_supabase()
 
     try:
-        # Parse price safely
         price_str = str(data.get("estimated_price_usd") or "0").replace("$", "").replace(",", "")
         try:
             numbers = re.findall(r"[-+]?\d*\.?\d+", price_str)
@@ -54,11 +58,9 @@ def save_item():
             "bounding_box": data.get("bounding_box"),
             "thumbnail_url": data.get("thumbnail_url"),
             "is_archived": data.get("is_archived", False),
-            # Store rich metadata + location in the JSON note column
             "maintenance_note": json.dumps({
                 "home": data.get("home_name", "My House"),
                 "room": data.get("room_name", "General Room"),
-                # New rich fields from the v2 prompt
                 "quantity": data.get("quantity", 1),
                 "is_set": data.get("is_set", False),
                 "estimated_age_years": data.get("estimated_age_years"),
@@ -73,7 +75,6 @@ def save_item():
             }),
         }
 
-        # Create a Scan record for the foreign key link
         scan_payload = {
             "user_id": user_id,
             "status": "item_link",
@@ -87,27 +88,28 @@ def save_item():
             if scan_res.data:
                 to_save["scan_id"] = scan_res.data[0]["id"]
             else:
-                print("WARNING: Scan created but no ID returned.")
+                log.warning("scan_record_no_id_returned")
         except Exception as scan_err:
-            print(f"NOTICE: Could not create scan record: {scan_err}. Saving item without link.")
+            log.warning("scan_record_creation_failed", error=str(scan_err))
 
-        print(f"DEBUG: Saving item for user {user_id}")
+        log.debug("saving_item", user_id=user_id, name=data.get("name"))
         res = supabase.table("items").insert(to_save).execute()
 
         if not res.data:
+            log.error("item_save_no_data_returned", user_id=user_id)
             return jsonify({
                 "error": "Item saved but no data returned. Check RLS policies.",
                 "payload_sent": to_save,
             }), 400
 
+        log.info("item_saved", user_id=user_id, name=data.get("name"), item_id=res.data[0].get("id"))
         return jsonify({"success": True, "data": res.data[0]})
 
     except Exception as e:
         error_msg = str(e)
-        print(f"ERROR IN SAVE_ITEM: {error_msg}")
+        log.error("save_item_failed", user_id=user_id, error=error_msg)
         traceback.print_exc()
 
-        # Friendly hints for common Supabase errors
         if "profiles" in error_msg and "violates foreign key constraint" in error_msg:
             hint = "You must create a profile for this user in the Supabase 'profiles' table first."
             return jsonify({"error": f"{error_msg}. {hint}"}), 400
@@ -116,7 +118,7 @@ def save_item():
             hint = "Run this SQL: 'ALTER TABLE items ALTER COLUMN scan_id DROP NOT NULL;'"
             return jsonify({"error": f"{error_msg}. {hint}"}), 400
 
-        return jsonify({"error": f"Failed to save: {error_msg}"}), 500
+        return jsonify({"error": "Failed to save item. Check server logs."}), 500
 
 
 # ─── Get Items ──────────────────────────────────────────────
@@ -132,8 +134,7 @@ def get_user_items():
     supabase = get_supabase()
 
     try:
-        items_query = supabase.table("items").select("*, scans(*)").eq("user_id", user_id)
-        result = items_query.execute()
+        result = supabase.table("items").select("*, scans(*)").eq("user_id", user_id).execute()
         data = result.data or []
 
         final_data = []
@@ -141,14 +142,12 @@ def get_user_items():
             note = item.get("maintenance_note") or ""
             scan_info = item.get("scans") or {}
 
-            # Determine archived status
             is_item_archived = (item.get("is_archived") is True) or (note == "[ARCHIVED]")
             item["is_archived"] = is_item_archived
 
             if show_archived != is_item_archived:
                 continue
 
-            # Resolve location (prefer scan table, fallback to JSON note)
             item["home_name"] = scan_info.get("home_name")
             item["room_name"] = scan_info.get("room_name")
             item["original_image_url"] = scan_info.get("original_image_url")
@@ -159,7 +158,6 @@ def get_user_items():
                         meta = json.loads(note)
                         item["home_name"] = item["home_name"] or meta.get("home")
                         item["room_name"] = item["room_name"] or meta.get("room")
-                        # Unpack rich metadata fields
                         for key in [
                             "quantity", "is_set", "estimated_age_years",
                             "condition_notes", "unit_price_usd",
@@ -172,7 +170,6 @@ def get_user_items():
                     except Exception:
                         pass
             else:
-                # Even when location comes from scan, still unpack rich metadata
                 if note and note.startswith("{"):
                     try:
                         meta = json.loads(note)
@@ -191,20 +188,23 @@ def get_user_items():
             item["home_name"] = item["home_name"] or "My House"
             item["room_name"] = item["room_name"] or "General Room"
 
-            # Search filter (multi-word)
             if query:
                 search_terms = query.lower().split()
-                searchable = (
-                    f"{item.get('name')} {item.get('category')} {item.get('make')} "
-                    f"{item.get('model')} {item['home_name']} {item['room_name']}"
+                searchable = " ".join(
+                    str(v) for v in [
+                        item.get("name"), item.get("category"), item.get("make"),
+                        item.get("model"), item["home_name"], item["room_name"],
+                    ] if v
                 ).lower()
                 if not all(term in searchable for term in search_terms):
                     continue
 
             final_data.append(item)
 
+        log.debug("items_fetched", user_id=user_id, count=len(final_data))
         return jsonify({"success": True, "data": final_data})
     except Exception as e:
+        log.error("get_items_failed", user_id=user_id, error=str(e))
         return jsonify({"error": str(e)}), 400
 
 
@@ -223,8 +223,10 @@ def update_item_field(item_id):
     supabase = get_supabase()
     try:
         res = supabase.table("items").update(data).eq("id", item_id).eq("user_id", user_id).execute()
+        log.debug("item_updated", item_id=item_id, fields=list(data.keys()))
         return jsonify({"success": True, "data": res.data})
     except Exception as e:
+        log.error("item_update_failed", item_id=item_id, error=str(e))
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -241,8 +243,10 @@ def archive_item(item_id):
             supabase.table("items").update({"is_archived": True}).eq("id", item_id).eq("user_id", user_id).execute()
         except Exception:
             supabase.table("items").update({"maintenance_note": "[ARCHIVED]"}).eq("id", item_id).eq("user_id", user_id).execute()
+        log.info("item_archived", item_id=item_id)
         return jsonify({"success": True})
     except Exception as e:
+        log.error("archive_failed", item_id=item_id, error=str(e))
         return jsonify({"error": str(e)}), 400
 
 
@@ -255,8 +259,10 @@ def unarchive_item(item_id):
     try:
         if supabase:
             supabase.table("items").update({"is_archived": False}).eq("id", item_id).eq("user_id", user_id).execute()
+        log.info("item_unarchived", item_id=item_id)
         return jsonify({"success": True})
     except Exception as e:
+        log.error("unarchive_failed", item_id=item_id, error=str(e))
         return jsonify({"error": str(e)}), 400
 
 
@@ -282,10 +288,13 @@ def get_resale_listing(item_id):
         if listing_str:
             cleaned = listing_str.strip().replace("```json", "").replace("```", "").strip()
             listing_data = json.loads(cleaned)
+            log.info("resale_listing_generated", item_id=item_id)
             return jsonify({"success": True, "listing": listing_data})
         else:
+            log.error("resale_listing_ai_failed", item_id=item_id)
             return jsonify({"error": "AI failed to generate listing"}), 500
     except Exception as e:
+        log.error("resale_listing_error", item_id=item_id, error=str(e))
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
@@ -321,14 +330,13 @@ def generate_estate_report():
                 report[home][room] = {"items": [], "subtotal": 0, "total_insurance_value": 0}
 
             price = float(item.get("estimated_price_usd") or 0)
-            
-            # Unpack rich details
+
             rich_meta = {}
             note = item.get("maintenance_note")
             if note and str(note).startswith("{"):
                 try:
                     rich_meta = json.loads(note)
-                except:
+                except Exception:
                     pass
 
             report[home][room]["items"].append({
@@ -347,20 +355,19 @@ def generate_estate_report():
                 "condition": item.get("condition"),
             })
             report[home][room]["subtotal"] += price
-            
-            # Try to parse string insurance value, fallback to standard price + 15%
+
             ins_val_str = str(rich_meta.get("insurance_replacement_usd", "0")).replace("$", "").replace(",", "")
             try:
                 numbers = re.findall(r"[-+]?\d*\.?\d+", ins_val_str)
                 ins_price = float(numbers[-1]) if numbers else price * 1.15
-            except:
+            except Exception:
                 ins_price = price * 1.15
 
             report[home][room]["total_insurance_value"] += ins_price
-            
             total_value += price
             total_items += 1
 
+        log.info("estate_report_generated", user_id=user_id, total_items=total_items, total_value=total_value)
         return jsonify({
             "success": True,
             "report_date": time.strftime("%Y-%m-%d"),
@@ -370,5 +377,6 @@ def generate_estate_report():
             "properties": report,
         })
     except Exception as e:
+        log.error("estate_report_failed", user_id=user_id, error=str(e))
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500

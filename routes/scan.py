@@ -1,6 +1,9 @@
 """
 Scan Routes
 Handles image uploads, AI room analysis, and Sniper Mode thumbnail refinement.
+
+Agent 0B: all logging via structlog. Scan cost is accumulated per-request via
+init_scan_cost() / finalize_scan_cost() from observability.
 """
 import os
 import json
@@ -14,6 +17,9 @@ from PIL import Image
 import scanner
 from config import Config
 from routes.auth import get_current_user_id
+from observability import get_logger, init_scan_cost, finalize_scan_cost
+
+log = get_logger("scan", agent_id="0B")
 
 scan_bp = Blueprint("scan", __name__, url_prefix="/api")
 
@@ -28,39 +34,31 @@ def allowed_file(filename):
 
 
 def get_refined_thumbnail(original_path, item_name, rough_box, upload_folder):
-    """Robust fallback: crops the original image using the provided bounding box without making a second API call."""
+    """Crops the original image using the provided bounding box. No second API call."""
     try:
         with Image.open(original_path) as img:
             width, height = img.size
             if not rough_box or len(rough_box) != 4:
                 return None, rough_box
-            
-            # Gemini typically returns [ymin, xmin, ymax, xmax] scaled 0-1000.
-            # We sort them to prevent inverted bounds exceptions
+
+            # Gemini returns [ymin, xmin, ymax, xmax] scaled 0-1000
             b0, b1, b2, b3 = rough_box
             ymin, ymax = sorted([b0, b2])
             xmin, xmax = sorted([b1, b3])
 
-            left = (xmin / 1000) * width
-            top = (ymin / 1000) * height
-            right = (xmax / 1000) * width
+            left   = (xmin / 1000) * width
+            top    = (ymin / 1000) * height
+            right  = (xmax / 1000) * width
             bottom = (ymax / 1000) * height
 
-            # Padded crop at natural aspect ratio — no square forcing
             pad = 0.15
             pad_x = (right - left) * pad
             pad_y = (bottom - top) * pad
 
-            crop_left = left - pad_x
-            crop_top = top - pad_y
-            crop_right = right + pad_x
-            crop_bottom = bottom + pad_y
-
-            # Clamp to image bounds
-            crop_left = max(0, crop_left)
-            crop_top = max(0, crop_top)
-            crop_right = min(width, crop_right)
-            crop_bottom = min(height, crop_bottom)
+            crop_left   = max(0, left - pad_x)
+            crop_top    = max(0, top - pad_y)
+            crop_right  = min(width, right + pad_x)
+            crop_bottom = min(height, bottom + pad_y)
 
             if crop_right <= crop_left or crop_bottom <= crop_top:
                 return None, rough_box
@@ -70,20 +68,21 @@ def get_refined_thumbnail(original_path, item_name, rough_box, upload_folder):
             if thumb_img.mode in ("RGBA", "P"):
                 thumb_img = thumb_img.convert("RGB")
 
-            # thumbnail() only shrinks — use resize() so small crops upscale to 800px too
+            # Always resize to 800px on longest side — upscale small crops for crispness
             cw, ch = thumb_img.size
             scale = min(800 / cw, 800 / ch)
-            new_w, new_h = max(1, round(cw * scale)), max(1, round(ch * scale))
+            new_w = max(1, round(cw * scale))
+            new_h = max(1, round(ch * scale))
             resample = Image.LANCZOS if scale < 1 else Image.BICUBIC
             thumb_img = thumb_img.resize((new_w, new_h), resample)
-            
+
             thumb_name = f"thumb_{uuid.uuid4().hex[:8]}.jpg"
             thumb_path = os.path.join(upload_folder, thumb_name)
             thumb_img.save(thumb_path, quality=85)
 
             return thumb_path, [ymin, xmin, ymax, xmax]
     except Exception as e:
-        print(f"Crop Error: {e}")
+        log.error("crop_error", item_name=item_name, error=str(e))
         return None, rough_box
 
 
@@ -92,18 +91,21 @@ def fetch_product_image_url(name, make=None, model=None):
     api_key = Config.GOOGLE_API_KEY
     cse_id = Config.GOOGLE_CSE_ID
     if not api_key or not cse_id:
-        print("  [WEB] GOOGLE_API_KEY or GOOGLE_CSE_ID not set — skipping web image fetch")
+        log.debug("web_image_skip", reason="GOOGLE_API_KEY or GOOGLE_CSE_ID not set")
         return None
     try:
         import requests as req
         _junk = {"n/a", "unknown", "unidentified", "none", "", "—", "-"}
+
         def _clean(v):
             if not v:
                 return None
             stripped = v.strip()
             return None if stripped.lower() in _junk or stripped.startswith("Unidentified") else stripped
+
         parts = [p for p in [_clean(make), _clean(model), name] if p]
         query = " ".join(parts) + " product photo"
+
         resp = req.get(
             "https://www.googleapis.com/customsearch/v1",
             params={
@@ -126,12 +128,14 @@ def fetch_product_image_url(name, make=None, model=None):
         if items:
             return items[0].get("link")
     except Exception as e:
-        print(f"  [WEB] Google image search failed for '{name}': {e}")
+        log.warning("web_image_search_failed", item_name=name, error=str(e))
     return None
 
 
 @scan_bp.route("/scan", methods=["POST"])
 def scan_image():
+    init_scan_cost()  # reset per-request AI cost accumulator
+
     if "image" not in request.files:
         return jsonify({"error": "No image parts in the request"}), 400
 
@@ -148,7 +152,6 @@ def scan_image():
     supabase = get_supabase()
     upload_folder = Config.UPLOAD_FOLDER
 
-    # Confidence threshold for auto-save (configurable)
     AUTO_SAVE_THRESHOLD = 75
 
     for file in files:
@@ -172,9 +175,9 @@ def scan_image():
                     file_options={"content-type": content_type},
                 )
                 room_url = supabase.storage.from_("scans").get_public_url(storage_path)
-                print(f"DEBUG: Room image uploaded: {room_url}")
+                log.info("room_image_uploaded", url=room_url)
             except Exception as e:
-                print(f"ERROR: Room upload failed: {e}")
+                log.error("room_upload_failed", error=str(e))
 
         # 2. Analyze room for items via Gemini
         try:
@@ -187,7 +190,7 @@ def scan_image():
             items = json.loads(cleaned)
             if not isinstance(items, list):
                 items = [items]
-            print(f"DEBUG: Identified {len(items)} items in {filename}")
+            log.info("items_identified", filename=filename, count=len(items))
 
             # 3. Sniper Mode: Refine each item's crop
             for i, item in enumerate(items):
@@ -212,13 +215,14 @@ def scan_image():
                             )
                             item["thumbnail_url"] = supabase.storage.from_("scans").get_public_url(thumb_storage)
                             item["bounding_box"] = refined_box
-                            print(f"DEBUG: Thumbnail_{i} generated: {item['thumbnail_url']}")
-                            if os.path.exists(thumb_path):
-                                os.remove(thumb_path)
+                            log.debug("thumbnail_uploaded", index=i, url=item["thumbnail_url"])
                         except Exception as thumb_err:
-                            print(f"ERROR: Thumbnail_{i} upload failed: {thumb_err}")
+                            log.error("thumbnail_upload_failed", index=i, error=str(thumb_err))
+                        finally:
+                            if thumb_path and os.path.exists(thumb_path):
+                                os.remove(thumb_path)
 
-                # 4. Web image fallback: if still no thumbnail, search the internet
+                # 4. Web image fallback
                 if not item.get("thumbnail_url"):
                     web_url = fetch_product_image_url(
                         item.get("name", ""),
@@ -228,13 +232,13 @@ def scan_image():
                     if web_url:
                         item["thumbnail_url"] = web_url
                         item["thumbnail_source"] = "web"
-                        print(f"  [WEB] Fallback image fetched for: {item.get('name')}")
+                        log.debug("web_image_fallback_used", item_name=item.get("name"))
                     else:
-                        print(f"  [WEB] No fallback image found for: {item.get('name')}")
+                        log.debug("no_fallback_image", item_name=item.get("name"))
 
             all_results.extend(items)
         except Exception as e:
-            print(f"ERROR: Analysis failed for {filename}: {e}")
+            log.error("analysis_failed", filename=filename, error=str(e))
             errors.append(str(e))
         finally:
             if os.path.exists(filepath):
@@ -243,23 +247,20 @@ def scan_image():
     if not all_results and errors:
         return jsonify({"error": "Failed to process any items.", "details": errors}), 500
 
-    # ═══════════════════════════════════════════════════════
-    # SMART AUTO-SAVE: split by confidence
-    # ═══════════════════════════════════════════════════════
+    # ── Smart Auto-Save: split by confidence ─────────────────
     auto_saved = []
     needs_review = []
 
     for item in all_results:
         confidence = item.get("confidence_score", 0)
-        # Ensure it's a number
         if isinstance(confidence, str):
             try:
-                confidence = int(confidence)
+                # Strip % if present (e.g. "75%" → 75)
+                confidence = int(str(confidence).replace("%", "").strip())
             except (ValueError, TypeError):
                 confidence = 0
 
         if confidence >= AUTO_SAVE_THRESHOLD and user_id and supabase:
-            # ── Auto-save this item to the database ──
             try:
                 import re
                 price_str = str(item.get("estimated_price_usd") or "0").replace("$", "").replace(",", "")
@@ -297,7 +298,6 @@ def scan_image():
                     }),
                 }
 
-                # Create scan record for foreign key
                 try:
                     scan_payload = {
                         "user_id": user_id,
@@ -310,7 +310,7 @@ def scan_image():
                     if scan_res.data:
                         to_save["scan_id"] = scan_res.data[0]["id"]
                 except Exception as scan_err:
-                    print(f"NOTICE: Scan record creation failed: {scan_err}")
+                    log.warning("scan_record_creation_failed", error=str(scan_err))
 
                 res = supabase.table("items").insert(to_save).execute()
                 if res.data:
@@ -318,27 +318,32 @@ def scan_image():
                     item["id"] = saved_item["id"]
                     item["auto_saved"] = True
                     auto_saved.append(item)
-                    print(f"  [OK] AUTO-SAVED: {item['name']} (confidence: {confidence}%)")
+                    log.info("item_auto_saved", name=item["name"], confidence=confidence)
                 else:
                     item["auto_saved"] = False
                     needs_review.append(item)
             except Exception as save_err:
-                print(f"  [X] Auto-save failed for {item.get('name')}: {save_err}")
+                log.error("auto_save_failed", name=item.get("name"), error=str(save_err))
                 item["auto_saved"] = False
                 needs_review.append(item)
         else:
-            # ── Below threshold → needs human review ──
             item["auto_saved"] = False
-            reason = "low confidence" if confidence < AUTO_SAVE_THRESHOLD else "no auth"
+            reason = "low_confidence" if confidence < AUTO_SAVE_THRESHOLD else "no_auth"
             item["review_reason"] = f"Confidence {confidence}% (threshold: {AUTO_SAVE_THRESHOLD}%)"
             needs_review.append(item)
-            print(f"  [!] NEEDS REVIEW: {item.get('name')} (confidence: {confidence}%, {reason})")
+            log.info("item_needs_review", name=item.get("name"), confidence=confidence, reason=reason)
 
-    print(f"\n[SUMMARY] Scan Summary: {len(auto_saved)} auto-saved, {len(needs_review)} need review")
+    total_cost = finalize_scan_cost()
+    log.info(
+        "scan_summary",
+        auto_saved=len(auto_saved),
+        needs_review=len(needs_review),
+        total_cost_cents=total_cost,
+    )
 
     return jsonify({
         "success": True,
-        "data": all_results,  # All items (backward compat)
+        "data": all_results,
         "auto_saved": auto_saved,
         "needs_review": needs_review,
         "summary": {
@@ -362,4 +367,3 @@ def image_search():
     if url:
         return jsonify({"url": url})
     return jsonify({"url": None, "error": "No image found"}), 404
-

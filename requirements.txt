@@ -5,3 +5,11 @@ python-dotenv
 pillow
 requests
 supabase
+structlog
+python-json-logger
+sentry-sdk[flask]
+pydantic
+fastapi
+uvicorn[standard]
+python-multipart
+opencv-python-headless
