@@ -27,6 +27,11 @@ uploads/
 .DS_Store
 Thumbs.db
 
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+
 # Misc
 *.log
 error.txt
